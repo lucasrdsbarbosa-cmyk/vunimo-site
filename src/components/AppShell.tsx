@@ -6,6 +6,7 @@ import { Logo } from "./Logo";
 import { Icon } from "./Icons";
 import { SideNav, TabBar, type NavItem } from "./NavLinks";
 import { HelpMenu } from "./HelpMenu";
+import { AutoHideHeader } from "./AutoHideHeader";
 
 type Section = "jornada" | "pro" | "admin";
 
@@ -88,7 +89,10 @@ export async function AppShell({ section, children }: { section: Section; childr
             </div>
           </div>
           {/* Barra superior — celular */}
-          <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-papel/90 px-4 py-3 backdrop-blur-md lg:hidden">
+          <AutoHideHeader
+            className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-papel/90 px-4 py-3 backdrop-blur-md lg:hidden"
+            style={{ viewTransitionName: "vn-app-header" }}
+          >
             <Logo size="sm" href={user?.role === "youth" ? "/app" : "/"} />
             <div className="flex items-center gap-2">
             <HelpMenu compact />
@@ -106,7 +110,7 @@ export async function AppShell({ section, children }: { section: Section; childr
               </Link>
             )}
             </div>
-          </header>
+          </AutoHideHeader>
           <main id="conteudo" className="flex-1 px-4 pb-28 pt-6 sm:px-6 lg:-mt-11 lg:px-10 lg:pb-12 lg:pt-10">
             <div className="mx-auto w-full max-w-5xl">{children}</div>
           </main>

@@ -64,9 +64,9 @@ export default async function RequestsPage({ searchParams }: PageProps<"/app/ped
                   </p>
                   <p className="mt-3 whitespace-pre-wrap">{r.message}</p>
                   {r.attachment ? (
-                    <details className="mt-3 rounded-xl bg-nevoa/60 px-4 py-2 text-sm">
-                      <summary className="cursor-pointer font-semibold">Resumo anexado</summary>
-                      <p className="mt-2 whitespace-pre-wrap">{r.attachment}</p>
+                    <details className="vn-details mt-3 rounded-xl bg-nevoa/60 px-4 text-sm">
+                      <summary className="font-semibold">Resumo anexado</summary>
+                      <p className="whitespace-pre-wrap pb-3">{r.attachment}</p>
                     </details>
                   ) : null}
                   {r.response ? (

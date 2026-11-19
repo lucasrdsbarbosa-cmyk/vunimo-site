@@ -22,6 +22,8 @@ export function TimelineForm({ event, today }: { event?: TimelineEvent; today: s
           name="happenedOn"
           type="date"
           required
+          max={today}
+          today={today}
           defaultValue={v.happenedOn ?? event?.happenedOn ?? today}
           errors={state.errors?.happenedOn}
         />

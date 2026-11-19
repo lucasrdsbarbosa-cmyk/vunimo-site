@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { Icon } from "./Icons";
 import { HelpMenu } from "./HelpMenu";
+import { AutoHideHeader } from "./AutoHideHeader";
+import { useSlidingIndicator } from "./useSlidingIndicator";
 
 const LINKS = [
   { href: "/comecar", label: "Começar" },
@@ -24,20 +26,27 @@ export function SiteHeader({ account }: { account: { href: string; label: string
     setLastPath(pathname);
     setOpen(false);
   }
+  const activeIndex = LINKS.findIndex((l) => l.href === pathname);
+  const { rootRef, indRef } = useSlidingIndicator<HTMLElement, HTMLSpanElement>(activeIndex);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/70 bg-papel/85 backdrop-blur-md">
+    <AutoHideHeader
+      className="sticky top-0 z-40 border-b border-line/70 bg-papel/85 backdrop-blur-md"
+      style={{ viewTransitionName: "vn-site-header" }}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Logo dockTarget={pathname === "/"} />
 
-        <nav aria-label="Principal" className="hidden items-center gap-0.5 lg:flex">
-          {LINKS.map((l) => (
+        <nav ref={rootRef} aria-label="Principal" className="relative hidden items-center gap-0.5 lg:flex">
+          <span ref={indRef} aria-hidden="true" className="vn-ind vn-ind-top" />
+          {LINKS.map((l, i) => (
             <Link
               key={l.href}
               href={l.href}
-              aria-current={pathname === l.href ? "page" : undefined}
-              className={`vn-underline rounded-full px-3 py-2 text-[0.97rem] ${
-                pathname === l.href ? "font-semibold text-iris" : "text-grafite"
+              transitionTypes={activeIndex >= 0 && i !== activeIndex ? [i > activeIndex ? "vn-forward" : "vn-back"] : undefined}
+              aria-current={i === activeIndex ? "page" : undefined}
+              className={`vn-underline rounded-full px-3 py-2 text-[0.97rem] transition-colors ${
+                i === activeIndex ? "font-semibold text-iris" : "text-grafite hover:text-iris"
               }`}
             >
               {l.label}
@@ -88,7 +97,9 @@ export function SiteHeader({ account }: { account: { href: string; label: string
                 <li key={l.href} style={{ "--i": i } as React.CSSProperties} className="vn-drawer-item">
                   <Link
                     href={l.href}
-                    className="flex min-h-12 items-center justify-between border-b border-line/70 text-lg"
+                    className={`flex min-h-12 items-center justify-between border-b border-line/70 text-lg ${
+                      pathname === l.href ? "font-semibold text-iris" : ""
+                    }`}
                     aria-current={pathname === l.href ? "page" : undefined}
                   >
                     {l.label}
@@ -116,6 +127,6 @@ export function SiteHeader({ account }: { account: { href: string; label: string
           </nav>
         </div>
       </div>
-    </header>
+    </AutoHideHeader>
   );
 }

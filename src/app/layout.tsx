@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PressFeedback } from "@/components/PressFeedback";
 
 export const metadata: Metadata = {
   title: {
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full bg-papel">{children}</body>
+      <body className="min-h-full bg-papel">
+        {children}
+        <PressFeedback />
+      </body>
     </html>
   );
 }

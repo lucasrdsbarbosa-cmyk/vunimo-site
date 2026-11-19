@@ -79,6 +79,22 @@ Plano e roteiro da abertura: [docs/plano-v2.md](docs/plano-v2.md).
 - **Profissional**: pausar/retomar novos pedidos (sai do diretório) e "Sugerir rascunho" de resposta com IA.
 - Transições: View Transitions entre páginas, menus e botões com movimento próprio — tudo desligado com movimento reduzido.
 
+### Interações (v3)
+
+- **Clique:** onda curta a partir do ponto tocado em botões (`src/components/PressFeedback.tsx`), botão afunda ao
+  pressionar, pontinhos enquanto envia, mensagem de sucesso com ✓ e erro com um leve balanço.
+- **Abas:** indicador que desliza até a aba ativa na barra inferior, na lateral e no topo
+  (`useSlidingIndicator.ts`); o conteúdo entra deslizando para o lado da aba escolhida (View Transitions com
+  `transitionTypes`).
+- **Rolagem:** a barra de navegação recolhe ao descer e volta ao subir, só com `transform` (`AutoHideHeader.tsx`);
+  na página inicial ela fica durante a abertura.
+- **Caixinhas:** painel de ajuda com itens em cascata, confirmação de apagar com diálogo próprio (no lugar do
+  `confirm` do navegador), "Resumo anexado" abre com altura animada, selects com seta Íris.
+- **Calendário** (`src/components/DatePicker.tsx`): hoje com anel Lima, escolhido em Íris com os cantos do símbolo,
+  datas futuras riscadas; atalhos Hoje/Ontem; vira folha de baixo no celular. Teclado: setas, Home/End,
+  PageUp/PageDown (Shift = ano), Enter escolhe, Esc fecha.
+- Tudo isso respeita "reduzir movimento" do sistema (a abertura da página inicial é a exceção, por decisão do projeto).
+
 Como testar a abertura: abra http://localhost:3000, role devagar até a moldura com os quatro caminhos e volte.
 
 ## O que é público e o que é privado

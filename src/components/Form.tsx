@@ -1,7 +1,8 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { DatePicker } from "./DatePicker";
 
 /** Depois de um envio com erro, leva o foco ao primeiro campo inválido do formulário. */
 export function FocusFirstError({ errors }: { errors?: Record<string, string[] | undefined> }) {
@@ -29,13 +30,40 @@ export function SubmitButton({
 }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={className} disabled={pending} aria-disabled={pending} name={name} value={value}>
-      {pending ? pendingLabel : children}
+    <button
+      type="submit"
+      className={className}
+      disabled={pending}
+      aria-disabled={pending}
+      data-pending={pending ? "" : undefined}
+      name={name}
+      value={value}
+    >
+      {pending ? <PendingLabel>{pendingLabel}</PendingLabel> : children}
     </button>
   );
 }
 
-/** Botão de envio que pede confirmação antes de uma ação que não pode ser desfeita. */
+/** Texto de espera com três pontinhos animados (o texto já termina em "…" para leitores de tela). */
+function PendingLabel({ children }: { children: ReactNode }) {
+  const text = typeof children === "string" ? children.replace(/…$/, "") : children;
+  return (
+    <>
+      <span>{text}</span>
+      <span className="vn-dots" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="sr-only">…</span>
+    </>
+  );
+}
+
+/**
+ * Botão de envio que pede confirmação antes de uma ação que não pode ser desfeita.
+ * Usa um diálogo da Vunimo (foco preso, Esc cancela) em vez do "confirm" do navegador.
+ */
 export function ConfirmSubmit({
   children,
   confirmText,
@@ -48,17 +76,56 @@ export function ConfirmSubmit({
   pendingLabel?: string;
 }) {
   const { pending } = useFormStatus();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
   return (
-    <button
-      type="submit"
-      className={className}
-      disabled={pending}
-      onClick={(e) => {
-        if (!window.confirm(confirmText)) e.preventDefault();
-      }}
-    >
-      {pending ? pendingLabel : children}
-    </button>
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={className}
+        disabled={pending}
+        data-pending={pending ? "" : undefined}
+        aria-haspopup="dialog"
+        onClick={() => dialogRef.current?.showModal()}
+      >
+        {pending ? <PendingLabel>{pendingLabel}</PendingLabel> : children}
+      </button>
+      <dialog
+        ref={dialogRef}
+        className="vn-confirm"
+        aria-labelledby={titleId}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) e.currentTarget.close();
+        }}
+      >
+        <div className="p-6">
+          <span aria-hidden="true" className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-alerta-bg text-xl font-bold text-alerta">
+            !
+          </span>
+          <h2 id={titleId} className="text-lg">
+            {confirmText}
+          </h2>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <button type="button" className="btn btn-secondary" autoFocus onClick={() => dialogRef.current?.close()}>
+              Voltar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                dialogRef.current?.close();
+                triggerRef.current?.form?.requestSubmit();
+              }}
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </dialog>
+    </>
   );
 }
 
@@ -77,6 +144,9 @@ type FieldProps = {
   inputMode?: "text" | "numeric" | "email";
   placeholder?: string;
   options?: readonly string[] | { value: string; label: string }[];
+  /** Só para type="date": último dia que pode ser escolhido (AAAA-MM-DD) e o dia de hoje. */
+  max?: string;
+  today?: string;
 };
 
 export function Field({
@@ -94,6 +164,8 @@ export function Field({
   inputMode,
   placeholder,
   options,
+  max,
+  today,
 }: FieldProps) {
   const id = `f-${name}`;
   const hintId = hint ? `${id}-hint` : undefined;
@@ -111,7 +183,7 @@ export function Field({
 
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className="font-semibold text-grafite">
+      <label id={`${id}-label`} htmlFor={id} className="font-semibold text-grafite">
         {label}
         {!required ? <span className="font-normal text-muted"> (opcional)</span> : null}
       </label>
@@ -120,7 +192,18 @@ export function Field({
           {hint}
         </p>
       ) : null}
-      {options ? (
+      {type === "date" && today ? (
+        <DatePicker
+          id={id}
+          name={name}
+          defaultValue={defaultValue}
+          max={max}
+          today={today}
+          required={required}
+          invalid={Boolean(errors?.length)}
+          describedBy={describedBy}
+        />
+      ) : options ? (
         <select {...common} defaultValue={defaultValue ?? ""}>
           <option value="" disabled>
             Escolha uma opção
@@ -197,11 +280,18 @@ export function FormMessage({ message, ok }: { message?: string; ok?: boolean })
     <div aria-live="polite" role={ok ? "status" : "alert"}>
       {message ? (
         <p
-          className={`rounded-xl px-4 py-3 text-[0.95rem] font-semibold ${
+          key={message}
+          data-tone={ok ? "ok" : "error"}
+          className={`vn-msg flex items-start gap-2 rounded-xl px-4 py-3 text-[0.95rem] font-semibold ${
             ok ? "bg-ok-bg text-ok" : "bg-alerta-bg text-alerta"
           }`}
         >
-          {message}
+          {ok ? (
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="vn-msg-check mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+          ) : null}
+          <span>{message}</span>
         </p>
       ) : null}
     </div>

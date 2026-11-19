@@ -62,8 +62,8 @@ export function HelpMenu({ compact = false, tone = "light" }: { compact?: boolea
           </div>
 
           <div className="overflow-y-auto px-5 py-5 sm:px-6">
-            <h3 className="font-semibold text-alerta">Se você corre risco agora</h3>
-            <ul className="mt-3 grid gap-2">
+            <h3 className="vn-sheet-item font-semibold text-alerta" style={{ "--i": 0 } as React.CSSProperties}>Se você corre risco agora</h3>
+            <ul className="vn-sheet-item mt-3 grid gap-2" style={{ "--i": 1 } as React.CSSProperties}>
               {URGENT_CHANNELS.map((c) => (
                 <li key={c.name}>
                   <a
@@ -81,8 +81,8 @@ export function HelpMenu({ compact = false, tone = "light" }: { compact?: boolea
               ))}
             </ul>
 
-            <h3 className="mt-6 font-semibold">Outros caminhos de apoio</h3>
-            <ul className="mt-3 grid gap-2">
+            <h3 className="vn-sheet-item mt-6 font-semibold" style={{ "--i": 2 } as React.CSSProperties}>Outros caminhos de apoio</h3>
+            <ul className="vn-sheet-item mt-3 grid gap-2" style={{ "--i": 3 } as React.CSSProperties}>
               {SUPPORT_CHANNELS.slice(1).map((c) => (
                 <li key={c.name} className="rounded-2xl border border-line px-4 py-3">
                   <p className="font-semibold">{c.name}</p>
@@ -102,7 +102,7 @@ export function HelpMenu({ compact = false, tone = "light" }: { compact?: boolea
               ))}
             </ul>
 
-            <div className="mt-6 rounded-2xl bg-nevoa p-4">
+            <div className="vn-sheet-item mt-6 rounded-2xl bg-nevoa p-4" style={{ "--i": 4 } as React.CSSProperties}>
               <h3 className="font-semibold">Usando um celular ou computador compartilhado?</h3>
               <p className="mt-1 text-sm text-muted">
                 O botão abaixo troca esta página por um site comum e não deixa a Vunimo no botão Voltar. Se tiver conta,
@@ -117,7 +117,8 @@ export function HelpMenu({ compact = false, tone = "light" }: { compact?: boolea
             <Link
               href="/conectar#canais"
               onClick={() => ref.current?.close()}
-              className="link mt-5 inline-flex min-h-11 items-center"
+              className="vn-sheet-item link mt-5 inline-flex min-h-11 items-center"
+              style={{ "--i": 5 } as React.CSSProperties}
             >
               Ver todos os caminhos de apoio
             </Link>
