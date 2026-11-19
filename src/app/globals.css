@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* Identidade Vunimo — paleta e voz (Vunimo Identidade, proposta v002) */
+@theme {
+  --color-iris: #5548d9;
+  --color-iris-deep: #3f33b8;
+  --color-grafite: #27243b;
+  --color-lima: #d9f075;
+  --color-papel: #f7f5ef;
+  --color-nevoa: #e9e6f7;
+  --color-muted: #5c5874;
+  --color-line: #dcd8ea;
+  --color-alerta: #a3352b;
+  --color-alerta-bg: #fbeae7;
+  --color-ok: #1f6b4a;
+  --color-ok-bg: #e3f3ea;
+
+  --font-sans: "Segoe UI", "Segoe UI Variable Text", system-ui, -apple-system, "Helvetica Neue", Roboto, Arial, sans-serif;
+
+  --radius-card: 1.25rem;
+  --radius-field: 0.75rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: var(--color-papel);
+  color: var(--color-grafite);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--color-iris) 15%, transparent);
+  /* No celular, a barra inferior fixa não pode esconder o campo em foco. */
+  scroll-padding-bottom: 5.5rem;
+}
+@media (min-width: 1024px) {
+  html { scroll-padding-bottom: 0; }
+}
+a, button, label, select { touch-action: manipulation; }
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-iris);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.on-iris :focus-visible {
+  outline-color: var(--color-lima);
+}
+
+/* Campos de formulário */
+.field-input {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: var(--radius-field);
+  border: 1.5px solid var(--color-line);
+  background: #fff;
+  padding: 0.65rem 0.9rem;
+  font-size: 1rem; /* evita zoom automático no iOS */
+  color: var(--color-grafite);
+  transition: border-color 0.15s;
+}
+.field-input:hover {
+  border-color: #bdb7d6;
+}
+.field-input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-iris) 35%, transparent);
+  outline-offset: 0;
+  border-color: var(--color-iris);
+}
+.field-input[aria-invalid="true"] {
+  border-color: var(--color-alerta);
+}
+
+/* Botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  text-align: center;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.btn-primary {
+  background: var(--color-iris);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--color-iris-deep);
+}
+.btn-secondary {
+  border: 1.5px solid var(--color-iris);
+  color: var(--color-iris);
+  background: transparent;
+}
+.btn-secondary:hover {
+  background: var(--color-nevoa);
+}
+.btn-lima {
+  background: var(--color-lima);
+  color: var(--color-grafite);
+}
+.btn-lima:hover {
+  background: #cfe65f;
+}
+.btn-danger {
+  border: 1.5px solid var(--color-alerta);
+  color: var(--color-alerta);
+}
+.btn-danger:hover {
+  background: var(--color-alerta-bg);
+}
+
+.link {
+  color: var(--color-iris);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+/* Respiração: as duas formas do símbolo se afastam ao inspirar e voltam ao expirar */
+@keyframes breathe-a {
+  0%, 100% { transform: translate(0, 0); }
+  40%, 50% { transform: translate(-9%, -9%); }
+}
+@keyframes breathe-b {
+  0%, 100% { transform: translate(0, 0); }
+  40%, 50% { transform: translate(9%, 9%); }
+}
+@keyframes breathe-halo {
+  0%, 100% { transform: scale(0.82); opacity: 0.55; }
+  40%, 50% { transform: scale(1); opacity: 1; }
+}
+.breathing .shape-a { animation: breathe-a 10s ease-in-out infinite; }
+.breathing .shape-b { animation: breathe-b 10s ease-in-out infinite; }
+.breathing .halo { animation: breathe-halo 10s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
