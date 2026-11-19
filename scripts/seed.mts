@@ -18,8 +18,16 @@ const db = new DatabaseSync(file);
 db.exec(SCHEMA);
 migrate(db);
 
+// Num site publicado, a senha da administração não pode ser a do repositório público:
+// defina ADMIN_PASSWORD (Render gera uma; no computador, em .env.local).
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD?.trim() || TEST_PASSWORD;
+if (ADMIN_PASSWORD !== TEST_PASSWORD && ADMIN_PASSWORD.length < 12) {
+  throw new Error("ADMIN_PASSWORD precisa ter pelo menos 12 caracteres.");
+}
+
 const now = Date.now();
 const hash = bcrypt.hashSync(TEST_PASSWORD, 12);
+const adminHash = ADMIN_PASSWORD === TEST_PASSWORD ? hash : bcrypt.hashSync(ADMIN_PASSWORD, 12);
 
 db.exec("BEGIN");
 db.prepare("DELETE FROM users WHERE email LIKE '%@vunimo.test'").run();
@@ -28,7 +36,7 @@ function user(email: string, role: string, name: string, birthYear: number | nul
   const id = randomUUID();
   db.prepare(
     "INSERT INTO users (id, email, password_hash, role, display_name, birth_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).run(id, email, hash, role, name, birthYear, now);
+  ).run(id, email, role === "admin" ? adminHash : hash, role, name, birthYear, now);
   return id;
 }
 
@@ -108,3 +116,4 @@ console.log("  jovem2@vunimo.test     jovem (Teo) — tem um pedido aberto para 
 console.log("  psicologa@vunimo.test  profissional aprovada (Ana)");
 console.log("  medico@vunimo.test     profissional em análise (Carlos)");
 console.log("Senha de todas: veja TEST_PASSWORD em scripts/seed.mts ou o README.");
+if (ADMIN_PASSWORD !== TEST_PASSWORD) console.log("Administração: senha definida em ADMIN_PASSWORD (não é a do README).");

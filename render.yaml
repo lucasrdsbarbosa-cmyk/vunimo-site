@@ -1,0 +1,23 @@
+# Configuração para o Render (https://render.com), plano gratuito.
+# No Render: New > Blueprint > escolha o repositório vunimo-site. Ele lê este arquivo.
+#
+# Atenção: no plano gratuito o disco é temporário. O banco SQLite é recriado a cada início
+# (contas fictícias de volta ao estado inicial; contas criadas no site somem quando o serviço reinicia).
+services:
+  - type: web
+    name: vunimo
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run seed && npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "26"
+      # Senha da conta admin@vunimo.test: o Render gera e mostra em Environment.
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      # Opcional: para a IA de verdade, preencha no painel do Render (sem chave = modo demonstração).
+      - key: ANTHROPIC_API_KEY
+        sync: false

@@ -12,6 +12,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mts",
+    "seed:publico": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mts",
+    "publicar:local": "npm run build && npm run seed:publico && next start -p 3100",
     "test:e2e": "playwright test"
   },
   "dependencies": {

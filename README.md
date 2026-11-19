@@ -22,6 +22,33 @@ npm run test:e2e
 
 Outras verificações: `npm run typecheck`, `npm run lint`, `npm run build`.
 
+## Publicar (grátis)
+
+**Link temporário pelo seu computador** (funciona enquanto o computador e os dois comandos estiverem rodando):
+
+```powershell
+npm run publicar:local
+```
+
+```powershell
+cloudflared tunnel --url http://localhost:3100
+```
+
+O segundo comando mostra um endereço `https://….trycloudflare.com` que abre em qualquer aparelho; ele muda a cada vez.
+A senha da conta `admin@vunimo.test` nesse modo é a de `ADMIN_PASSWORD` no arquivo `.env.local` (fora do Git).
+Rodar os testes (`npm run test:e2e`) volta a senha do admin para a de teste.
+
+**Link fixo no Render** (o site roda nos servidores do Render, mesmo com seu computador desligado):
+
+1. Crie uma conta em https://render.com (dá para entrar com o GitHub).
+2. **New › Blueprint**, escolha o repositório `vunimo-site` e confirme. O Render lê `render.yaml`.
+3. Espere o primeiro build (alguns minutos). O link fica como `https://vunimo-xxxx.onrender.com`.
+4. A senha do admin está em **Environment › ADMIN_PASSWORD** no painel do serviço.
+
+Limites do plano gratuito: o serviço dorme após ~15 min sem visitas (o primeiro acesso depois leva até 1 min) e o
+banco é recriado a cada início — contas criadas no site somem. Para guardar dados de verdade, o próximo passo é
+trocar o SQLite por um banco hospedado (Turso ou Supabase).
+
 ## Contas fictícias (criadas por `npm run seed`)
 
 Todas usam a senha **`Vunimo@teste1`** (definida em `scripts/seed.mts`). Rodar o seed de novo recria essas contas.
