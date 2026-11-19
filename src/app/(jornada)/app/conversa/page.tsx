@@ -51,9 +51,8 @@ export default async function ChatPage({ searchParams }: PageProps<"/app/convers
         {chosen && !conversation ? <Notice tone="info">Essa conversa não existe mais. Comece uma nova abaixo.</Notice> : null}
         {!configured ? (
           <Notice tone="info">
-            <strong>A conversa com IA ainda não está ligada neste servidor.</strong> Falta configurar a chave da Anthropic
-            (ANTHROPIC_API_KEY). Enquanto isso, nenhuma resposta é gerada — você pode usar o diário, a Pausa e a
-            Orientação normalmente.
+            <strong>Modo de teste:</strong> o Claude ainda não está ligado, então as respostas são automáticas e simples
+            (não leem de verdade o que você escreve).
           </Notice>
         ) : null}
         {entry ? (
@@ -98,7 +97,7 @@ export default async function ChatPage({ searchParams }: PageProps<"/app/convers
             conversationId={conversation?.id ?? null}
             messages={messages.map(({ id, role, content }) => ({ id, role, content }))}
             initialDraft={initialDraft}
-            configured={configured}
+            configured
           />
           {conversation && messages.length > 0 ? (
             <form action={deleteChat} className="mt-8 border-t border-line pt-5">

@@ -7,7 +7,7 @@ import {
   removeMyMessage,
 } from "@/lib/dal";
 import { rateLimit } from "@/lib/rate-limit";
-import { aiConfigured, streamReply } from "@/lib/ai/provider";
+import { streamReply } from "@/lib/ai/provider";
 import { hasRiskSignal } from "@/lib/ai/safety";
 import { chatMessageSchema } from "@/lib/validation";
 
@@ -31,13 +31,6 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Entre na sua conta para conversar." }, { status: 401 });
   if (user.role !== "youth") return Response.json({ error: "A conversa com IA é só para a área do jovem." }, { status: 403 });
-
-  if (!aiConfigured()) {
-    return Response.json(
-      { error: "A conversa com IA ainda não foi configurada neste servidor (falta a chave da Anthropic).", code: "not_configured" },
-      { status: 503 },
-    );
-  }
 
   let body: { message?: unknown; conversationId?: unknown };
   try {

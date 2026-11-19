@@ -50,6 +50,13 @@ Escreva um rascunho em português do Brasil, com no máximo 180 palavras:
 - Se houver sinal de risco, oriente CVV 188 e SAMU 192 logo no início.
 O profissional vai revisar e editar antes de enviar. Responda só com o rascunho.`;
 
+/** Respostas automáticas usadas só enquanto a chave da Anthropic não está configurada. */
+const AUTO_REPLIES = [
+  "Obrigado por contar. Se quiser, me diz como você está se sentindo agora — pode ser em poucas palavras.",
+  "Faz sentido se sentir assim. Você não fez nada para merecer isso. Quer contar onde aconteceu: numa rede social, num jogo ou num grupo?",
+  "Entendi. A Orientação explica como silenciar, bloquear e guardar evidências, e conversar com um adulto de confiança pode ajudar. O que você gostaria de fazer agora?",
+];
+
 /** A chave fica só no servidor (variável de ambiente); o navegador nunca a recebe. */
 export function aiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
@@ -128,12 +135,18 @@ export async function streamReply(
   signal?: AbortSignal,
 ): Promise<AiSuccess | AiFailure> {
   if (!aiConfigured()) {
-    return {
-      ok: false,
-      code: "not_configured",
-      retryable: false,
-      message: "A conversa com IA ainda não foi configurada neste servidor (falta a chave da Anthropic).",
-    };
+    // Sem chave: respostas automáticas simples (a tela avisa que não é o Claude).
+    const last = history.at(-1)?.content ?? "";
+    const turns = history.filter((t) => t.role === "assistant").length;
+    const text = /^\s*(oi+|ol[aá]|e a[ií]|eai|opa|bom dia|boa tarde|boa noite)\b/i.test(last)
+      ? "Oi! Que bom te ver por aqui. Como você está?"
+      : AUTO_REPLIES[turns % AUTO_REPLIES.length];
+    for (const word of text.split(/(?<=\s)/)) {
+      if (signal?.aborted) break;
+      onText(word);
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    return { ok: true, text, model: "automatico", messageId: "" };
   }
 
   try {
