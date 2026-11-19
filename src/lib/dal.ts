@@ -211,9 +211,47 @@ export async function getMyLatestConversation(): Promise<{ id: string; messages:
   return { id: conv.id, messages };
 }
 
-export async function ensureMyConversation(): Promise<string> {
-  const existing = await getMyLatestConversation();
-  if (existing) return existing.id;
+function messagesOf(conversationId: string): ChatMessage[] {
+  return (
+    db()
+      .prepare(
+        "SELECT id, role, content, created_at FROM ai_messages WHERE conversation_id = ? ORDER BY created_at ASC, rowid ASC",
+      )
+      .all(conversationId) as { id: string; role: "user" | "assistant"; content: string; created_at: number }[]
+  ).map((m) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.created_at }));
+}
+
+/** Uma conversa específica, só se for do jovem logado. */
+export async function getMyConversation(id: string): Promise<{ id: string; messages: ChatMessage[] } | null> {
+  const user = await requireUser(["youth"], "/app/conversa");
+  const conv = db().prepare("SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?").get(id, user.id) as
+    | { id: string }
+    | undefined;
+  return conv ? { id: conv.id, messages: messagesOf(conv.id) } : null;
+}
+
+export type ConversationSummary = { id: string; updatedAt: number; preview: string; count: number };
+
+/** Conversas do jovem (mais recentes primeiro), com o começo da primeira mensagem como título. */
+export async function listMyConversations(limit = 20): Promise<ConversationSummary[]> {
+  const user = await requireUser(["youth"], "/app/conversa");
+  return (
+    db()
+      .prepare(
+        `SELECT c.id, c.updated_at,
+           (SELECT content FROM ai_messages m WHERE m.conversation_id = c.id AND m.role = 'user'
+              ORDER BY m.created_at ASC, m.rowid ASC LIMIT 1) AS first,
+           (SELECT COUNT(*) FROM ai_messages m WHERE m.conversation_id = c.id) AS n
+         FROM ai_conversations c WHERE c.user_id = ? ORDER BY c.updated_at DESC LIMIT ?`,
+      )
+      .all(user.id, limit) as { id: string; updated_at: number; first: string | null; n: number }[]
+  )
+    .filter((c) => c.n > 0)
+    .map((c) => ({ id: c.id, updatedAt: c.updated_at, preview: (c.first ?? "").slice(0, 80), count: c.n }));
+}
+
+/** Começa uma conversa nova (histórico separado das outras). */
+export async function createMyConversation(): Promise<string> {
   const user = await requireUser(["youth"], "/app/conversa");
   const id = newId();
   db()
@@ -222,25 +260,50 @@ export async function ensureMyConversation(): Promise<string> {
   return id;
 }
 
+export async function ensureMyConversation(): Promise<string> {
+  const existing = await getMyLatestConversation();
+  if (existing) return existing.id;
+  return createMyConversation();
+}
+
+/** Grava uma mensagem numa conversa do jovem logado e devolve o id da mensagem. */
 export async function appendToMyConversation(
   conversationId: string,
   role: "user" | "assistant",
   content: string,
   flagged = false,
-): Promise<void> {
+): Promise<string> {
   const user = await requireUser(["youth"], "/app/conversa");
   const owns = db()
     .prepare("SELECT 1 FROM ai_conversations WHERE id = ? AND user_id = ?")
     .get(conversationId, user.id);
   if (!owns) throw new Error("conversation_not_found");
+  const id = newId();
   transaction(() => {
     db()
       .prepare(
         "INSERT INTO ai_messages (id, conversation_id, role, content, flagged, created_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .run(newId(), conversationId, role, content, flagged ? 1 : 0, now());
+      .run(id, conversationId, role, content, flagged ? 1 : 0, now());
     db().prepare("UPDATE ai_conversations SET updated_at = ? WHERE id = ?").run(now(), conversationId);
   });
+  return id;
+}
+
+/** Desfaz uma mensagem (usado quando a IA falha: a pessoa tenta de novo sem duplicar). */
+export async function removeMyMessage(conversationId: string, messageId: string): Promise<void> {
+  const user = await requireUser(["youth"], "/app/conversa");
+  db()
+    .prepare(
+      `DELETE FROM ai_messages WHERE id = ? AND conversation_id = ?
+         AND conversation_id IN (SELECT id FROM ai_conversations WHERE user_id = ?)`,
+    )
+    .run(messageId, conversationId, user.id);
+}
+
+export async function deleteMyConversation(id: string): Promise<void> {
+  const user = await requireUser(["youth"], "/app/conversa");
+  db().prepare("DELETE FROM ai_conversations WHERE id = ? AND user_id = ?").run(id, user.id);
 }
 
 export async function clearMyConversations(): Promise<void> {

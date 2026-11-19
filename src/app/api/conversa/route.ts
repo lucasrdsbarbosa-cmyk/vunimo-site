@@ -1,19 +1,27 @@
 import { getCurrentUser } from "@/lib/session";
-import { appendToMyConversation, ensureMyConversation, getMyLatestConversation } from "@/lib/dal";
+import {
+  appendToMyConversation,
+  createMyConversation,
+  deleteMyConversation,
+  getMyConversation,
+  removeMyMessage,
+} from "@/lib/dal";
 import { rateLimit } from "@/lib/rate-limit";
-import { streamReply } from "@/lib/ai/provider";
+import { aiConfigured, streamReply } from "@/lib/ai/provider";
 import { hasRiskSignal } from "@/lib/ai/safety";
 import { chatMessageSchema } from "@/lib/validation";
 
 /**
- * Conversa com IA em tempo real.
- * Recebe { message } e responde em NDJSON (uma linha JSON por evento):
- *   {"type":"start","risk":bool}  → {"type":"delta","text":"…"} … → {"type":"done","mode":"ai"|"demo"}
- *   ou {"type":"error","message":"…"}
- * Só o próprio jovem logado usa; a conversa é gravada pela camada de dados (filtrada pelo dono).
+ * Conversa com o Claude (API oficial da Anthropic), em tempo real.
+ * Corpo: { message, conversationId? }. Sem conversationId, começa uma conversa nova.
+ * Resposta em NDJSON (uma linha JSON por evento):
+ *   {"type":"start","conversationId","risk"} → {"type":"delta","text"} … → {"type":"done","messageId"}
+ *   ou {"type":"error","code","message","retryable"} — nesse caso a mensagem da pessoa é desfeita,
+ *   para que "Tentar de novo" não duplique nada.
+ * A chave da Anthropic fica só no servidor; o navegador recebe apenas o texto.
  */
 export async function POST(request: Request) {
-  // Mesmo site apenas (proteção contra envio a partir de outra página).
+  // Só o próprio site pode chamar (proteção contra envio a partir de outra página).
   const origin = request.headers.get("origin");
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   if (!origin || !host || new URL(origin).host !== host) {
@@ -24,27 +32,47 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ error: "Entre na sua conta para conversar." }, { status: 401 });
   if (user.role !== "youth") return Response.json({ error: "A conversa com IA é só para a área do jovem." }, { status: 403 });
 
-  let body: unknown;
+  if (!aiConfigured()) {
+    return Response.json(
+      { error: "A conversa com IA ainda não foi configurada neste servidor (falta a chave da Anthropic).", code: "not_configured" },
+      { status: 503 },
+    );
+  }
+
+  let body: { message?: unknown; conversationId?: unknown };
   try {
-    body = await request.json();
+    body = (await request.json()) as typeof body;
   } catch {
     return Response.json({ error: "Mensagem inválida." }, { status: 400 });
   }
-  const parsed = chatMessageSchema.safeParse((body as { message?: unknown })?.message);
+  const parsed = chatMessageSchema.safeParse(body?.message);
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
 
+  let conversationId = typeof body.conversationId === "string" && body.conversationId ? body.conversationId : null;
+  let isNew = false;
+  if (conversationId) {
+    if (!(await getMyConversation(conversationId))) {
+      return Response.json({ error: "Conversa não encontrada." }, { status: 404 });
+    }
+  } else {
+    conversationId = await createMyConversation();
+    isNew = true;
+  }
+
   if (!rateLimit(`chat:${user.id}`, 30, 60 * 60 * 1000)) {
+    if (isNew) await deleteMyConversation(conversationId);
     return Response.json(
-      { error: "Você chegou ao limite de mensagens por hora. Que tal uma Pausa ou escrever no diário enquanto isso?" },
+      { error: "Você chegou ao limite de 30 mensagens por hora. Que tal uma Pausa ou escrever no diário enquanto isso?" },
       { status: 429 },
     );
   }
 
   const risk = hasRiskSignal(parsed.data);
-  const conversationId = await ensureMyConversation();
-  await appendToMyConversation(conversationId, "user", parsed.data, risk);
-  const conv = await getMyLatestConversation();
+  const userMessageId = await appendToMyConversation(conversationId, "user", parsed.data, risk);
+  // Histórico só desta conversa: as outras ficam separadas.
+  const conv = await getMyConversation(conversationId);
   const history = (conv?.messages ?? []).map((m) => ({ role: m.role, content: m.content }));
+  const convId = conversationId;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -53,16 +81,19 @@ export async function POST(request: Request) {
         try {
           controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
         } catch {
-          /* a pessoa saiu da página; a resposta ainda é gravada */
+          /* a pessoa saiu da página */
         }
       };
-      send({ type: "start", risk });
+      send({ type: "start", conversationId: convId, risk });
       const reply = await streamReply(history, (text) => send({ type: "delta", text }), request.signal);
-      if (reply.mode === "unavailable") {
-        send({ type: "error", message: reply.text });
+      if (reply.ok) {
+        const messageId = await appendToMyConversation(convId, "assistant", reply.text);
+        send({ type: "done", messageId, userMessageId });
       } else {
-        if (reply.text) await appendToMyConversation(conversationId, "assistant", reply.text);
-        send({ type: "done", mode: reply.mode });
+        // Desfaz a mensagem da pessoa: ao tentar de novo, ela é enviada uma única vez.
+        await removeMyMessage(convId, userMessageId);
+        if (isNew) await deleteMyConversation(convId);
+        send({ type: "error", code: reply.code, message: reply.message, retryable: reply.retryable, conversationGone: isNew });
       }
       try {
         controller.close();

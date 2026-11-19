@@ -5,12 +5,19 @@ import { Icon } from "@/components/Icons";
 import { UrgentHelp } from "@/components/UrgentHelp";
 import { useSpeechToText, useTextToSpeech } from "@/components/voice";
 
-type Msg = { id: string; role: "user" | "assistant"; content: string; streaming?: boolean };
+type Msg = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  streaming?: boolean;
+  /** Mensagem da pessoa que não chegou a ser respondida (pode tentar de novo). */
+  failed?: { message: string; retryable: boolean };
+};
 type StreamEvent =
-  | { type: "start"; risk: boolean }
+  | { type: "start"; conversationId: string; risk: boolean }
   | { type: "delta"; text: string }
-  | { type: "done"; mode: "ai" | "demo" }
-  | { type: "error"; message: string };
+  | { type: "done"; messageId: string; userMessageId: string }
+  | { type: "error"; code: string; message: string; retryable: boolean; conversationGone?: boolean };
 
 const VOICE_KEY = "vn-modo-voz";
 const voiceListeners = new Set<() => void>();
@@ -37,17 +44,28 @@ const subscribeVoice = (l: () => void) => {
 let seq = 0;
 const localId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
-export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; initialDraft?: string }) {
+export function ChatPanel({
+  conversationId: initialConversationId,
+  messages,
+  initialDraft = "",
+  configured,
+}: {
+  conversationId: string | null;
+  messages: Msg[];
+  initialDraft?: string;
+  configured: boolean;
+}) {
   const [msgs, setMsgs] = useState<Msg[]>(messages);
+  const [conversationId, setConversationId] = useState(initialConversationId);
   const [draft, setDraft] = useState(initialDraft);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [risk, setRisk] = useState(false);
   const voiceMode = useSyncExternalStore(subscribeVoice, readVoiceMode, () => false);
 
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const sendingRef = useRef(false); // trava síncrona: dois cliques rápidos não enviam duas vezes
 
   const tts = useTextToSpeech();
   const stt = useSpeechToText((text) => {
@@ -65,41 +83,48 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  async function send(raw: string) {
+  async function send(raw: string, retryOf?: string) {
     const text = raw.trim();
-    if (!text || sending) return;
-    setError(null);
-    tts.cancel();
-    const userMsg: Msg = { id: localId("u"), role: "user", content: text };
-    const replyId = localId("a");
-    setMsgs((m) => [...m, userMsg, { id: replyId, role: "assistant", content: "", streaming: true }]);
-    setDraft("");
+    if (!text || sendingRef.current || !configured) return;
+    sendingRef.current = true;
     setSending(true);
+    tts.cancel();
+
+    const userId = localId("u");
+    const replyId = localId("a");
+    setMsgs((m) => [
+      ...m.filter((x) => x.id !== retryOf),
+      { id: userId, role: "user", content: text },
+      { id: replyId, role: "assistant", content: "", streaming: true },
+    ]);
+    if (!retryOf) setDraft("");
+
+    const fail = (message: string, retryable: boolean) =>
+      setMsgs((m) =>
+        m.filter((x) => x.id !== replyId).map((x) => (x.id === userId ? { ...x, failed: { message, retryable } } : x)),
+      );
 
     const controller = new AbortController();
     abortRef.current = controller;
-    const dropReply = () => setMsgs((m) => m.filter((x) => x.id !== replyId));
     let full = "";
 
     try {
       const res = await fetch("/api/conversa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, conversationId }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        // Nada foi gravado: devolve o texto para a caixa.
-        setMsgs((m) => m.filter((x) => x.id !== replyId && x.id !== userMsg.id));
-        setDraft(text);
-        setError(data.error ?? "Não foi possível enviar agora. Tente de novo.");
+        fail(data.error ?? `O servidor respondeu com erro ${res.status}.`, res.status === 429 || res.status >= 500);
         return;
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let finished = false;
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -110,33 +135,45 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
           if (!line.trim()) continue;
           const ev = JSON.parse(line) as StreamEvent;
           if (ev.type === "start") {
+            setConversationId(ev.conversationId);
+            // Endereço da conversa atual, para recarregar ou voltar a ela depois.
+            window.history.replaceState(null, "", `/app/conversa?c=${ev.conversationId}`);
             if (ev.risk) setRisk(true);
           } else if (ev.type === "delta") {
             full += ev.text;
             const now = full;
             setMsgs((m) => m.map((x) => (x.id === replyId ? { ...x, content: now } : x)));
           } else if (ev.type === "done") {
-            setMsgs((m) => m.map((x) => (x.id === replyId ? { ...x, streaming: false } : x)));
-            if (voiceMode && full.trim()) tts.speak(replyId, full);
+            finished = true;
+            setMsgs((m) =>
+              m.map((x) =>
+                x.id === replyId ? { ...x, id: ev.messageId, streaming: false } : x.id === userId ? { ...x, id: ev.userMessageId } : x,
+              ),
+            );
+            if (voiceMode && full.trim()) tts.speak(ev.messageId, full);
           } else if (ev.type === "error") {
-            dropReply();
-            setError(ev.message);
+            finished = true;
+            if (ev.conversationGone) {
+              setConversationId(null);
+              window.history.replaceState(null, "", "/app/conversa?nova=1");
+            }
+            fail(ev.message, ev.retryable);
           }
         }
       }
+      if (!finished) fail("A conexão caiu antes de a resposta terminar.", true);
     } catch (e) {
-      if ((e as Error).name !== "AbortError") {
-        if (!full) dropReply();
-        setError("A conexão caiu no meio da resposta. Tente de novo.");
-      }
+      if ((e as Error).name !== "AbortError") fail("Não foi possível falar com o servidor. Confira sua internet.", true);
     } finally {
-      setMsgs((m) => m.map((x) => (x.id === replyId ? { ...x, streaming: false } : x)));
+      sendingRef.current = false;
       setSending(false);
       abortRef.current = null;
     }
   }
 
   const shownDraft = stt.listening && stt.interim ? `${draft ? `${draft.trimEnd()} ` : ""}${stt.interim}` : draft;
+  // O aviso de erro acompanha a última mensagem enviada: some quando uma nova dá certo.
+  const lastFailed = [...msgs].reverse().find((m) => m.role === "user");
 
   return (
     <div className="flex flex-col gap-4">
@@ -150,9 +187,11 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
         {msgs.length === 0 ? (
           <div className="flex h-full min-h-[16rem] flex-col items-center justify-center text-center">
             <Icon name="chat" className="h-10 w-10 text-iris" />
-            <p className="mt-3 text-lg">Comece quando quiser.</p>
+            <p className="mt-3 text-lg">{configured ? "Comece quando quiser." : "A conversa com IA está desligada."}</p>
             <p className="max-w-sm text-muted">
-              Pode escrever ou falar: conte o que aconteceu, como está se sentindo, ou pergunte o que fazer.
+              {configured
+                ? "Pode escrever ou falar: um oi, o que aconteceu, como está se sentindo ou qualquer pergunta."
+                : "Quando a chave da Anthropic for configurada no servidor, as respostas aparecem aqui."}
             </p>
           </div>
         ) : (
@@ -162,7 +201,9 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
                 <div className={`flex max-w-[85%] flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
                   <div
                     className={`whitespace-pre-wrap rounded-2xl px-4 py-3 ${
-                      m.role === "user" ? "rounded-br-md bg-iris text-white" : "rounded-bl-md bg-nevoa text-grafite"
+                      m.role === "user"
+                        ? `rounded-br-md bg-iris text-white ${m.failed ? "opacity-70" : ""}`
+                        : "rounded-bl-md bg-nevoa text-grafite"
                     }`}
                   >
                     <span className="sr-only">{m.role === "user" ? "Você:" : "IA:"} </span>
@@ -182,6 +223,21 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
                       </span>
                     )}
                   </div>
+                  {m.failed ? (
+                    <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
+                      <span className="font-semibold text-alerta">Não enviada</span>
+                      {m.failed.retryable ? (
+                        <button
+                          type="button"
+                          className="vn-press inline-flex min-h-9 items-center rounded-full bg-alerta-bg px-3 font-semibold text-alerta"
+                          disabled={sending}
+                          onClick={() => void send(m.content, m.id)}
+                        >
+                          Tentar de novo
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {m.role === "assistant" && m.content && !m.streaming && tts.supported ? (
                     <button
                       type="button"
@@ -202,9 +258,9 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
       </div>
 
       {risk ? <UrgentHelp /> : null}
-      {error ? (
+      {lastFailed?.failed ? (
         <p role="alert" className="vn-msg rounded-xl bg-alerta-bg px-4 py-3 font-semibold text-alerta" data-tone="error">
-          {error}
+          {lastFailed.failed.message}
         </p>
       ) : null}
       {stt.error ? (
@@ -232,8 +288,11 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
             maxLength={2000}
             autoComplete="off"
             required
-            placeholder={stt.listening ? "Ouvindo… pode falar" : "Escreva ou toque no microfone…"}
-            className="field-input resize-y"
+            disabled={!configured}
+            placeholder={
+              !configured ? "IA desligada neste servidor" : stt.listening ? "Ouvindo… pode falar" : "Escreva ou toque no microfone…"
+            }
+            className="field-input resize-y disabled:cursor-not-allowed disabled:bg-papel"
             value={shownDraft}
             readOnly={stt.listening}
             onChange={(e) => setDraft(e.target.value)}
@@ -251,18 +310,27 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
           data-listening={stt.listening ? "" : undefined}
           aria-pressed={stt.listening}
           onClick={() => (stt.listening ? stt.stop() : stt.start())}
-          disabled={sending}
+          disabled={sending || !configured}
         >
           <Icon name={stt.listening ? "stop" : "mic"} className="h-5 w-5" />
           <span className="sr-only">{stt.listening ? "Parar de ouvir" : "Falar em vez de escrever"}</span>
         </button>
         <button
           type="submit"
-          disabled={sending || stt.listening}
+          disabled={sending || stt.listening || !configured}
+          aria-busy={sending}
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-iris text-white hover:bg-iris-deep disabled:opacity-60"
         >
-          <Icon name="send" className="h-5 w-5" />
-          <span className="sr-only">Enviar mensagem</span>
+          {sending ? (
+            <span className="vn-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          ) : (
+            <Icon name="send" className="h-5 w-5" />
+          )}
+          <span className="sr-only">{sending ? "Enviando…" : "Enviar mensagem"}</span>
         </button>
       </form>
 
@@ -272,6 +340,7 @@ export function ChatPanel({ messages, initialDraft = "" }: { messages: Msg[]; in
           <input
             type="checkbox"
             checked={voiceMode}
+            disabled={!configured}
             onChange={(e) => {
               setVoiceMode(e.target.checked);
               if (!e.target.checked) tts.cancel();

@@ -7,6 +7,7 @@ import {
   clearMyConversations,
   createMyRequest,
   deleteMyAccount,
+  deleteMyConversation,
   deleteMyJournalEntry,
   recordMyProgress,
   requireUser,
@@ -78,6 +79,14 @@ export async function clearChat(): Promise<void> {
   await clearMyConversations();
   revalidatePath("/app/conversa");
   redirect("/app/conversa?limpa=1");
+}
+
+/** Apaga uma conversa (só do próprio jovem). */
+export async function deleteChat(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (id) await deleteMyConversation(id);
+  revalidatePath("/app/conversa");
+  redirect("/app/conversa?apagada=1");
 }
 
 // ---------- Pedidos de apoio ----------

@@ -59,18 +59,18 @@ test.describe("Conversa com IA em tempo real", () => {
     const log = page.getByRole("log");
     await expect(log.getByText("Você: oi", { exact: true })).toBeVisible();
     await expect(log.locator(".vn-caret")).toBeVisible(); // ainda escrevendo
-    await expect(log.getByText("Obrigado por contar", { exact: false })).toBeVisible();
+    await expect(log.getByText("[simulação] Você disse:", { exact: false }).last()).toBeVisible();
     await expect(log.locator(".vn-caret")).toHaveCount(0);
 
     // Ouvir a resposta
     await log.getByRole("button", { name: "Ouvir" }).click();
     await expect(log.getByRole("button", { name: "Parar" })).toBeVisible();
     const spoken = await page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken);
-    expect(spoken[0]).toContain("Obrigado por contar");
+    expect(spoken[0]).toContain("[simulação] Você disse: \"oi\"");
 
     // A conversa fica salva
     await page.reload();
-    await expect(page.getByRole("log").getByText("Obrigado por contar", { exact: false })).toBeVisible();
+    await expect(page.getByRole("log").getByText("[simulação] Você disse:", { exact: false }).last()).toBeVisible();
   });
 
   test("falar em vez de escrever: o texto entra na caixa; no modo voz, envia e lê a resposta", async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe("Conversa com IA em tempo real", () => {
     await page.getByRole("button", { name: "Falar em vez de escrever" }).click();
     const log = page.getByRole("log");
     await expect(log.getByText("Você: me xingaram no jogo", { exact: true })).toBeVisible();
-    await expect(log.getByText("Obrigado por contar", { exact: false })).toBeVisible();
+    await expect(log.getByText("[simulação] Você disse:", { exact: false }).last()).toBeVisible();
     await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.length)).toBeGreaterThan(0);
     await page.getByRole("checkbox", { name: /Modo voz/ }).uncheck();
   });

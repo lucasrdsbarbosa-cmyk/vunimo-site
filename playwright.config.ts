@@ -14,7 +14,9 @@ export default defineConfig({
   reporter: [["list"]],
   globalSetup: "./tests/e2e/global-setup.ts",
   use: {
-    baseURL: process.env.BASE_URL ?? "http://localhost:3000",
+    // Servidor só dos testes (porta 3300), com a IA apontando para a SIMULAÇÃO da Anthropic
+    // (tests/e2e/mock-anthropic.mjs). Para testar contra a API real, veja tests/e2e/ia-real.spec.ts.
+    baseURL: process.env.BASE_URL ?? "http://localhost:3300",
     locale: "pt-BR",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
@@ -35,10 +37,26 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: process.env.BASE_URL
+    ? undefined
+    : [
+        {
+          command: "node tests/e2e/mock-anthropic.mjs",
+          url: "http://127.0.0.1:4010/__log",
+          reuseExistingServer: true,
+          timeout: 30_000,
+        },
+        {
+          command: "npx next dev -p 3300",
+          url: "http://localhost:3300",
+          reuseExistingServer: true,
+          timeout: 180_000,
+          env: {
+            NEXT_DIST_DIR: ".next-e2e",
+            ANTHROPIC_API_KEY: "chave-falsa-so-para-simulacao",
+            AI_BASE_URL: "http://127.0.0.1:4010",
+            AI_MODEL: "claude-opus-5-5",
+          },
+        },
+      ],
 });

@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // Quase todas as telas dependem da sessão (menu, "continuar de onde parou"),
   // então ficam com renderização dinâmica padrão em vez de Cache Components.
   poweredByHeader: false,
+  // Os testes automáticos sobem um servidor próprio (porta 3300) em outra pasta de build.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   turbopack: {
     rules: {
       "*.css": {

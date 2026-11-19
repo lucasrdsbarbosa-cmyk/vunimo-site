@@ -121,30 +121,36 @@ Onde isso é aplicado:
 
 ## IA (conversa no Desabafar)
 
-Integração pronta em `src/lib/ai/provider.ts` com a API da Anthropic (Claude). **Sem chave, funciona em modo
-demonstração**, com respostas fixas e um aviso na tela. Para ativar:
+Fluxo: chat do site → `POST /api/conversa` (`src/app/api/conversa/route.ts`) → API oficial da Anthropic
+(`src/lib/ai/provider.ts`, SDK `@anthropic-ai/sdk`, endereço fixo `https://api.anthropic.com`) → resposta em
+streaming de volta ao chat. **Não há respostas prontas:** sem chave, o chat mostra que a IA está desligada e não
+gera nada.
 
-1. Crie uma chave em https://console.anthropic.com/ (Settings → API Keys).
-2. Copie `.env.example` para `.env.local` e preencha `ANTHROPIC_API_KEY=...`.
+Para ligar:
+
+1. Crie uma chave em https://console.anthropic.com/ (Settings → API Keys) e adicione créditos em Billing.
+2. No computador: em `.env.local`, `ANTHROPIC_API_KEY=...`. No Render: Environment → `ANTHROPIC_API_KEY`.
 3. Opcional: `AI_MODEL` (padrão `claude-opus-5-5`; `claude-sonnet-5-5` ou `claude-haiku-5-5` custam menos).
-4. Reinicie o `npm run dev`.
+4. Reinicie o `npm run dev` e confira com `npm run ia:verificar` (mostra modelo, id da mensagem e tokens; nunca a chave).
+5. Teste real no site: `$env:IA_REAL="1"; $env:BASE_URL="http://localhost:3000"; npx playwright test ia-real --project=computador`.
 
-Como funciona agora:
+Como funciona:
 
-- **Resposta ao vivo:** `POST /api/conversa` (`src/app/api/conversa/route.ts`) chama o Claude em streaming e a tela
-  mostra o texto enquanto ele é escrito. Só aceita o próprio site como origem e só jovens logados.
-- **Voz** (`src/components/voice.ts`): o botão de microfone usa o ditado do navegador em pt-BR (Chrome, Edge,
-  Safari; o Brave não oferece, e a tela explica o que fazer). Cada resposta tem "Ouvir", e o **Modo voz** envia
-  quando a pessoa termina de falar e lê a resposta em voz alta.
-- **Diário + IA:** num registro do diário, "Conversar com a IA sobre isto" leva o texto para a caixa da conversa,
-  para a pessoa revisar antes de enviar.
+- **Conversas separadas:** "Nova conversa" começa outra, com histórico próprio; as anteriores ficam na lista. Só o
+  histórico da conversa aberta (até 30 mensagens) vai para o modelo.
+- **Erros de verdade:** chave inválida, sem créditos, modelo indisponível, limite de uso, instabilidade ou falta de
+  conexão aparecem como erro (não como resposta da IA). A mensagem não fica gravada e "Tentar de novo" a reenvia uma
+  vez só.
+- **Voz** (`src/components/voice.ts`): ditado do navegador em pt-BR (Chrome, Edge, Safari; o Brave não oferece, e a
+  tela explica). "Ouvir" em cada resposta e **Modo voz** (envia ao terminar de falar e lê a resposta).
+- **Diário + IA:** "Conversar com a IA sobre isto" leva o texto do registro para a caixa, para revisar antes de enviar.
+- **Testes:** `npm run test:e2e` sobe um servidor próprio (porta 3300) ligado a uma **simulação** da API
+  (`tests/e2e/mock-anthropic.mjs`), que confere o que o site envia; as respostas simuladas começam com "[simulação]".
 
-Cuidados já incluídos: instruções de sistema (identifica-se como IA, não diagnostica, não promete resultados, tom
-simples), detecção de palavras de risco no servidor que mostra CVV/SAMU/Polícia na hora (`src/lib/ai/safety.ts`),
-limite de 30 mensagens por hora, só as últimas 20 mensagens vão para o modelo, e reserva automática de modelo
-caso o principal recuse. As mensagens enviadas à IA saem do servidor para a Anthropic — isso está dito na página
-de privacidade.
-
+Cuidados: instruções do assistente (identifica-se como IA, responde de forma proporcional e específica, diz seus
+limites, não diagnostica), detecção de palavras de risco no servidor que mostra CVV/SAMU/Polícia na hora
+(`src/lib/ai/safety.ts`) e limite de 30 mensagens por hora. As mensagens enviadas à IA saem do servidor para a
+Anthropic — isso está dito na página de privacidade.
 ## Suposições (fáceis de ajustar)
 
 - Pausa, Orientação e Apoio não exigem conta; diário, IA e pedidos exigem, porque guardam dados.

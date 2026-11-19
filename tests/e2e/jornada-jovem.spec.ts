@@ -94,13 +94,13 @@ test.describe("Cadastro do jovem e retorno à conta", () => {
     await expect(page.getByText("Registro salvo.")).toBeVisible();
     await expect(page.getByRole("link", { name: /Primeiro registro/ })).toBeVisible();
 
-    // Conversa com IA (modo demonstração sem chave) + sinal de risco
+    // Conversa com IA (API da Anthropic SIMULADA nos testes) + sinal de risco
     await page.goto("/app/conversa");
     await expect(page.getByText("Não é atendimento profissional.")).toBeVisible();
     await page.getByLabel("Sua mensagem").fill("Me xingaram no jogo hoje.");
     await page.getByRole("button", { name: "Enviar mensagem" }).click();
     await expect(page.getByRole("log").getByText("Me xingaram no jogo hoje.")).toBeVisible();
-    await expect(page.getByRole("log").getByText("Obrigado por contar.", { exact: false })).toBeVisible();
+    await expect(page.getByRole("log").getByText("[simulação] Você disse: \"Me xingaram no jogo hoje.\"", { exact: false })).toBeVisible();
     await expect(page.getByLabel("Sua mensagem")).toBeEnabled();
     await page.getByLabel("Sua mensagem").fill("às vezes não quero mais viver");
     await page.getByRole("button", { name: "Enviar mensagem" }).click();
