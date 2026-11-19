@@ -117,6 +117,85 @@ export function aiConfigured(): boolean {
 
 let client: Anthropic | null = null;
 
+export const UNAVAILABLE_TEXT =
+  "A conversa com a IA está indisponível agora. Você pode tentar de novo em alguns minutos ou escrever no seu diário.";
+const REFUSAL_TEXT =
+  "Não consigo continuar essa parte da conversa por aqui. Se você estiver em risco, ligue 188 (CVV) ou 192 (SAMU), ou fale agora com um adulto de confiança.";
+
+/** Modelo usado na conversa (AI_MODEL no ambiente). */
+export function chatModel(): string {
+  return process.env.AI_MODEL || "claude-opus-5-5";
+}
+
+/**
+ * Gera a próxima resposta em partes (streaming): `onText` recebe cada trecho assim que chega,
+ * para a tela mostrar a resposta sendo escrita. Sem chave, simula o mesmo fluxo com as respostas
+ * de demonstração. `signal` cancela a chamada se a pessoa sair da página.
+ */
+export async function streamReply(
+  history: Turn[],
+  onText: (delta: string) => void,
+  signal?: AbortSignal,
+): Promise<AiReply> {
+  if (!aiConfigured()) {
+    const assistantTurns = history.filter((t) => t.role === "assistant").length;
+    const text = DEMO_REPLIES[assistantTurns % DEMO_REPLIES.length];
+    // Simula a escrita palavra a palavra, para o modo demonstração se comportar como o real.
+    for (const word of text.split(/(?<=\s)/)) {
+      if (signal?.aborted) break;
+      onText(word);
+      await new Promise((r) => setTimeout(r, 35));
+    }
+    return { text, mode: "demo" };
+  }
+
+  client ??= new Anthropic();
+  let streamed = "";
+  try {
+    const stream = client.beta.messages.stream(
+      {
+        model: chatModel(),
+        max_tokens: 4000,
+        // Chat curto e de baixa latência: esforço baixo é suficiente.
+        output_config: { effort: "low" },
+        // Se o modelo recusar, a API tenta automaticamente um modelo de reserva.
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+        // Mantém só as últimas trocas para limitar custo.
+        messages: history.slice(-20).map((t) => ({ role: t.role, content: t.content })),
+      },
+      { signal },
+    );
+    stream.on("text", (delta) => {
+      streamed += delta;
+      onText(delta);
+    });
+    const final = await stream.finalMessage();
+    if (final.stop_reason === "refusal") {
+      onText(`${streamed ? "\n\n" : ""}${REFUSAL_TEXT}`);
+      return { text: `${streamed ? `${streamed}\n\n` : ""}${REFUSAL_TEXT}`, mode: "ai" };
+    }
+    const text = final.content
+      .flatMap((b) => (b.type === "text" ? [b.text] : []))
+      .join("\n")
+      .trim();
+    return { text: text || streamed.trim(), mode: "ai" };
+  } catch (error) {
+    if (signal?.aborted) return { text: streamed.trim(), mode: "ai" };
+    if (error instanceof Anthropic.AuthenticationError) {
+      console.error("[ia] Chave da Anthropic inválida.");
+    } else if (error instanceof Anthropic.RateLimitError) {
+      console.error("[ia] Limite de uso da API atingido.");
+    } else if (error instanceof Anthropic.APIError) {
+      console.error(`[ia] Erro da API ${error.status}: ${error.message}`);
+    } else {
+      console.error("[ia] Falha ao chamar a IA:", error);
+    }
+    return { text: UNAVAILABLE_TEXT, mode: "unavailable" };
+  }
+}
+
 /** Gera a próxima resposta. Sem chave configurada, usa o modo demonstração. */
 export async function generateReply(history: Turn[]): Promise<AiReply> {
   if (!aiConfigured()) {

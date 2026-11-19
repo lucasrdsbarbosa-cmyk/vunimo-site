@@ -3,14 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
-  appendToMyConversation,
   cancelMyRequest,
   clearMyConversations,
   createMyRequest,
   deleteMyAccount,
   deleteMyJournalEntry,
-  ensureMyConversation,
-  getMyLatestConversation,
   recordMyProgress,
   requireUser,
   saveMyJournalEntry,
@@ -19,10 +16,7 @@ import {
 import { endSession } from "@/lib/session";
 import { listMyTimeline, timelineSummary } from "@/lib/dal-tools";
 import { rateLimit } from "@/lib/rate-limit";
-import { generateReply } from "@/lib/ai/provider";
-import { hasRiskSignal } from "@/lib/ai/safety";
 import {
-  chatMessageSchema,
   displayNameSchema,
   fieldErrors,
   journalSchema,
@@ -78,34 +72,7 @@ export async function deleteJournal(formData: FormData): Promise<void> {
 
 // ---------- Conversa com IA ----------
 
-export type ChatState = { error?: string; risk?: boolean; mode?: "ai" | "demo" | "unavailable" };
-
-export async function sendChatMessage(_prev: ChatState, formData: FormData): Promise<ChatState> {
-  const user = await requireUser(["youth"], "/app/conversa");
-  const parsed = chatMessageSchema.safeParse(formData.get("message"));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
-  if (!rateLimit(`chat:${user.id}`, 30, 60 * 60 * 1000)) {
-    return { error: "Você chegou ao limite de mensagens por hora. Que tal uma Pausa ou escrever no diário enquanto isso?" };
-  }
-
-  const risk = hasRiskSignal(parsed.data);
-  const conversationId = await ensureMyConversation();
-  await appendToMyConversation(conversationId, "user", parsed.data, risk);
-
-  const conv = await getMyLatestConversation();
-  const reply = await generateReply(
-    (conv?.messages ?? []).map((m) => ({ role: m.role, content: m.content })),
-  );
-  if (reply.mode !== "unavailable") {
-    await appendToMyConversation(conversationId, "assistant", reply.text);
-  }
-  revalidatePath("/app/conversa");
-  return {
-    risk,
-    mode: reply.mode,
-    error: reply.mode === "unavailable" ? reply.text : undefined,
-  };
-}
+// O envio de mensagens fica em src/app/api/conversa/route.ts (resposta em tempo real).
 
 export async function clearChat(): Promise<void> {
   await clearMyConversations();

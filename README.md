@@ -129,6 +129,16 @@ demonstração**, com respostas fixas e um aviso na tela. Para ativar:
 3. Opcional: `AI_MODEL` (padrão `claude-opus-5-5`; `claude-sonnet-5-5` ou `claude-haiku-5-5` custam menos).
 4. Reinicie o `npm run dev`.
 
+Como funciona agora:
+
+- **Resposta ao vivo:** `POST /api/conversa` (`src/app/api/conversa/route.ts`) chama o Claude em streaming e a tela
+  mostra o texto enquanto ele é escrito. Só aceita o próprio site como origem e só jovens logados.
+- **Voz** (`src/components/voice.ts`): o botão de microfone usa o ditado do navegador em pt-BR (Chrome, Edge,
+  Safari; o Brave não oferece, e a tela explica o que fazer). Cada resposta tem "Ouvir", e o **Modo voz** envia
+  quando a pessoa termina de falar e lê a resposta em voz alta.
+- **Diário + IA:** num registro do diário, "Conversar com a IA sobre isto" leva o texto para a caixa da conversa,
+  para a pessoa revisar antes de enviar.
+
 Cuidados já incluídos: instruções de sistema (identifica-se como IA, não diagnostica, não promete resultados, tom
 simples), detecção de palavras de risco no servidor que mostra CVV/SAMU/Polícia na hora (`src/lib/ai/safety.ts`),
 limite de 30 mensagens por hora, só as últimas 20 mensagens vão para o modelo, e reserva automática de modelo

@@ -37,6 +37,12 @@ export default function PrivacyPage() {
             Quando você usa a conversa com IA, suas mensagens são enviadas a um provedor de inteligência artificial
             para gerar as respostas. Não escreva dados que identifiquem você ou outras pessoas.
           </p>
+          <p className="mt-2">
+            Se você usar o microfone, quem transforma sua fala em texto é o próprio navegador (no Chrome e no Edge, isso
+            passa pelo serviço de voz deles). A Vunimo não grava áudio: recebe só o texto. A leitura das respostas em voz
+            alta usa as vozes do seu aparelho. O texto do diário só vai para a IA se você tocar em “Conversar com a IA
+            sobre isto” e enviar a mensagem.
+          </p>
         </section>
         <section>
           <h2 className="text-2xl">Apagar tudo</h2>

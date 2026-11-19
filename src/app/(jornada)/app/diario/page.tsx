@@ -79,6 +79,17 @@ export default async function JournalPage({ searchParams }: PageProps<"/app/diar
           <h2 className="mb-5 text-2xl">{selected ? "Editar registro" : "Escreva no seu tempo"}</h2>
           <JournalForm key={selected?.id ?? "novo"} entry={selected ?? undefined} />
           {selected ? (
+            <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl bg-nevoa p-4">
+              <Icon name="chat" className="h-6 w-6 shrink-0 text-iris" />
+              <p className="min-w-0 flex-1 text-[0.95rem]">
+                Quer pensar sobre isso com alguém? A IA lê só o que você enviar.
+              </p>
+              <Link href={`/app/conversa?diario=${selected.id}`} className="btn btn-primary vn-press min-h-11 px-5">
+                Conversar com a IA sobre isto
+              </Link>
+            </div>
+          ) : null}
+          {selected ? (
             <form action={deleteJournal} className="mt-6 border-t border-line pt-5">
               <input type="hidden" name="id" value={selected.id} />
               <ConfirmSubmit confirmText="Apagar este registro do diário? Não dá para desfazer.">

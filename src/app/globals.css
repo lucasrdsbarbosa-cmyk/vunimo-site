@@ -615,6 +615,24 @@ input[type="time"].field-input::-webkit-calendar-picker-indicator {
 }
 input[type="time"].field-input::-webkit-calendar-picker-indicator:hover { background: var(--color-nevoa); }
 
+/* ---------- Conversa com IA ---------- */
+.vn-chat-msg { animation: vn-step-in 0.35s var(--ease-out) both; }
+.vn-caret {
+  display: inline-block; width: 0.5rem; height: 1.05em; margin-left: 2px; vertical-align: -0.15em;
+  border-radius: 2px; background: var(--color-iris); animation: vn-caret 0.9s steps(1) infinite;
+}
+@keyframes vn-caret { 50% { opacity: 0; } }
+.vn-mic { position: relative; transition: background-color 0.2s, color 0.2s, transform 0.25s var(--ease-spring); }
+.vn-mic:hover:not(:disabled) { background: #ddd8f3; }
+.vn-mic:disabled { opacity: 0.6; }
+.vn-mic[data-listening] { background: var(--color-iris); color: #fff; }
+.vn-mic[data-listening]::before, .vn-mic[data-listening]::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--color-iris);
+  animation: vn-listen 1.6s var(--ease-out) infinite;
+}
+.vn-mic[data-listening]::after { animation-delay: 0.8s; }
+@keyframes vn-listen { from { transform: scale(1); opacity: 0.6; } to { transform: scale(1.7); opacity: 0; } }
+
 /* ---------- Calendário Vunimo ---------- */
 .vn-date { position: relative; }
 .vn-date-trigger { display: flex; align-items: center; gap: 0.6rem; text-align: left; cursor: pointer; }
