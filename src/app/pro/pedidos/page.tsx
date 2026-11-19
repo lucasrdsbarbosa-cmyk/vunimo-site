@@ -33,6 +33,12 @@ export default async function ProRequestsPage() {
               </div>
               <p className="text-sm text-muted">Recebido em {formatDate(r.createdAt)}</p>
               <p className="mt-4 whitespace-pre-wrap rounded-2xl bg-nevoa/60 p-4">{r.message}</p>
+              {r.attachment ? (
+                <div className="mt-3 rounded-2xl border border-line p-4">
+                  <p className="text-sm font-semibold text-iris">Resumo anexado pelo jovem</p>
+                  <p className="mt-1 whitespace-pre-wrap text-[0.95rem]">{r.attachment}</p>
+                </div>
+              ) : null}
               <div className="mt-5">
                 {r.status === "closed" ? (
                   <div>

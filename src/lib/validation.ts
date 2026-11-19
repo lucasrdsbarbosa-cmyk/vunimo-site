@@ -128,6 +128,7 @@ export const supportRequestSchema = z.object({
     .min(20, { error: "Conte um pouco mais (pelo menos 20 caracteres)." })
     .max(1500, { error: "A mensagem pode ter até 1.500 caracteres." }),
   privacy: checkbox("Confirme que entendeu quem vai ler sua mensagem."),
+  attachTimeline: z.literal("on").optional(),
 });
 
 export const requestResponseSchema = z.object({
@@ -136,6 +137,62 @@ export const requestResponseSchema = z.object({
     .trim()
     .min(10, { error: "Escreva uma resposta com pelo menos 10 caracteres." })
     .max(2000, { error: "A resposta pode ter até 2.000 caracteres." }),
+});
+
+export const PLATFORMS = [
+  "Instagram", "TikTok", "WhatsApp", "Discord", "YouTube", "X (Twitter)", "Snapchat",
+  "Roblox", "Free Fire", "Minecraft", "Fortnite", "Outro jogo", "Outra rede ou app",
+] as const;
+
+export const EVENT_KINDS = [
+  "Ofensas ou xingamentos", "Humilhação ou piada sobre mim", "Exposição de foto, vídeo ou informação",
+  "Ameaça", "Perfil falso", "Exclusão de grupo", "Mensagens insistentes", "Outro",
+] as const;
+
+export const timelineEventSchema = z.object({
+  happenedOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Informe a data em que aconteceu." })
+    .refine((d) => !Number.isNaN(Date.parse(d)) && Date.parse(d) <= Date.now() + 86_400_000, {
+      error: "A data não pode estar no futuro.",
+    }),
+  happenedTime: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/, { error: "Use o formato 14:30." })]),
+  platform: z.enum(PLATFORMS, { error: "Escolha onde aconteceu." }),
+  kind: z.enum(EVENT_KINDS, { error: "Escolha o tipo do ocorrido." }),
+  description: z
+    .string()
+    .trim()
+    .min(5, { error: "Conte em poucas palavras o que aconteceu." })
+    .max(1500, { error: "Use até 1.500 caracteres." }),
+  people: z.string().trim().max(200, { error: "Use até 200 caracteres." }),
+  hasEvidence: z.enum(["sim", "nao"], { error: "Diga se você guardou print ou registro." }),
+  evidenceNote: z.string().trim().max(300, { error: "Use até 300 caracteres." }),
+});
+
+export const planAnswersSchema = z.object({
+  where: z.enum(["rede", "jogo", "mensagens", "varios"], { error: "Escolha onde aconteceu." }),
+  kinds: z.array(z.enum(["ofensas", "exposicao", "ameaca", "perfil-falso", "exclusao"])).min(1, {
+    error: "Marque pelo menos uma opção.",
+  }),
+  ongoing: z.enum(["sim", "nao"], { error: "Responda se ainda está acontecendo." }),
+  adult: z.enum(["sim", "nao"], { error: "Responda se algum adulto já sabe." }),
+  risk: z.enum(["sim", "nao"], { error: "Responda esta pergunta para montarmos o plano." }),
+});
+
+export const RECIPIENTS = {
+  plataforma: "Plataforma (rede social ou jogo)",
+  escola: "Escola (coordenação ou direção)",
+  responsavel: "Responsável ou adulto de confiança",
+  safernet: "SaferNet (canal de ajuda ou denúncia)",
+} as const;
+
+export const draftSchema = z.object({
+  title: z.string().trim().min(2, { error: "Dê um nome curto ao rascunho." }).max(120, { error: "Use até 120 caracteres." }),
+  body: z
+    .string()
+    .trim()
+    .min(20, { error: "O rascunho precisa de pelo menos 20 caracteres." })
+    .max(8000, { error: "Use até 8.000 caracteres." }),
 });
 
 export const displayNameSchema = youthSignupSchema.shape.displayName;

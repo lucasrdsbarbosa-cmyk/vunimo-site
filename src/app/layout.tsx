@@ -18,7 +18,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className="h-full antialiased">
+    <html lang="pt-BR" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        {/* Marca que o JS está ativo antes da pintura, para a abertura não "pular" de layout. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+      </head>
       <body className="min-h-full bg-papel">{children}</body>
     </html>
   );

@@ -32,3 +32,10 @@ export function testDb(): DatabaseSync {
   db.exec("PRAGMA foreign_keys = ON");
   return db;
 }
+
+/** Remove os pedidos de um jovem fictício (o limite é 3 em andamento; vários testes usam a mesma conta). */
+export function clearRequests(email: string) {
+  const db = testDb();
+  db.prepare("DELETE FROM support_requests WHERE youth_id = (SELECT id FROM users WHERE email = ?)").run(email);
+  db.close();
+}

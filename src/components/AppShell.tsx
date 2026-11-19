@@ -5,7 +5,7 @@ import { logout } from "@/app/actions/auth";
 import { Logo } from "./Logo";
 import { Icon } from "./Icons";
 import { SideNav, TabBar, type NavItem } from "./NavLinks";
-import { UrgentHelp } from "./UrgentHelp";
+import { HelpMenu } from "./HelpMenu";
 
 type Section = "jornada" | "pro" | "admin";
 
@@ -37,6 +37,9 @@ function navFor(section: Section, user: CurrentUser | null): { main: NavItem[]; 
     ],
     extra: youth
       ? [
+          { href: "/app/linha-do-tempo", label: "Linha do tempo", icon: "evidence" },
+          { href: "/app/plano", label: "Plano de passos", icon: "check" },
+          { href: "/app/denuncia", label: "Rascunho de denúncia", icon: "flag" },
           { href: "/app/diario", label: "Meu diário", icon: "book" },
           { href: "/app/conversa", label: "Conversa com IA", icon: "chat" },
           { href: "/app/pedidos", label: "Pedidos de apoio", icon: "inbox" },
@@ -78,10 +81,17 @@ export async function AppShell({ section, children }: { section: Section; childr
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <UrgentHelp />
+          {/* Topo — computador: só a ajuda, discreta e sempre à mão */}
+          <div className="pointer-events-none sticky top-0 z-30 hidden justify-end px-10 pt-5 lg:flex">
+            <div className="pointer-events-auto rounded-full shadow-[0_6px_20px_-8px_rgb(39_36_59/0.35)]">
+              <HelpMenu />
+            </div>
+          </div>
           {/* Barra superior — celular */}
-          <header className="flex items-center justify-between gap-3 border-b border-line bg-papel/95 px-4 py-3 lg:hidden">
+          <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-papel/90 px-4 py-3 backdrop-blur-md lg:hidden">
             <Logo size="sm" href={user?.role === "youth" ? "/app" : "/"} />
+            <div className="flex items-center gap-2">
+            <HelpMenu compact />
             {user ? (
               <Link
                 href={user.role === "youth" ? "/app/conta" : user.role === "professional" ? "/pro/perfil" : "/admin"}
@@ -95,8 +105,9 @@ export async function AppShell({ section, children }: { section: Section; childr
                 Entrar
               </Link>
             )}
+            </div>
           </header>
-          <main id="conteudo" className="flex-1 px-4 pb-28 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
+          <main id="conteudo" className="flex-1 px-4 pb-28 pt-6 sm:px-6 lg:-mt-11 lg:px-10 lg:pb-12 lg:pt-10">
             <div className="mx-auto w-full max-w-5xl">{children}</div>
           </main>
           <footer className="hidden border-t border-line px-10 py-4 text-sm text-muted lg:block">

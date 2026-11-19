@@ -17,6 +17,7 @@ import {
   updateMyDisplayName,
 } from "@/lib/dal";
 import { endSession } from "@/lib/session";
+import { listMyTimeline, timelineSummary } from "@/lib/dal-tools";
 import { rateLimit } from "@/lib/rate-limit";
 import { generateReply } from "@/lib/ai/provider";
 import { hasRiskSignal } from "@/lib/ai/safety";
@@ -43,6 +44,9 @@ const TRACKABLE: Record<string, string> = {
   "/app/diario": "Meu diário",
   "/app/conversa": "Conversa com IA",
   "/app/pedidos": "Pedidos de apoio",
+  "/app/linha-do-tempo": "Linha do tempo",
+  "/app/plano": "Plano de próximos passos",
+  "/app/denuncia": "Rascunho de denúncia",
 };
 
 export async function trackVisit(pathName: string): Promise<void> {
@@ -118,12 +122,20 @@ export async function createRequest(_prev: FormState, formData: FormData): Promi
     topic: formData.get("topic"),
     message: formData.get("message"),
     privacy: formData.get("privacy") ?? undefined,
+    attachTimeline: formData.get("attachTimeline") ?? undefined,
   });
   if (!parsed.success) return { errors: fieldErrors(parsed.error), values: keepValues(formData) };
   if (!rateLimit(`request:${user.id}`, 5, 24 * 60 * 60 * 1000)) {
     return { message: "Você já enviou vários pedidos hoje. Aguarde as respostas ou use os canais de apoio.", values: keepValues(formData) };
   }
-  const result = await createMyRequest(parsed.data);
+  // Só anexa o resumo se o jovem marcou a opção (o profissional não lê a linha do tempo diretamente).
+  const attachment = parsed.data.attachTimeline ? timelineSummary(await listMyTimeline()) : "";
+  const result = await createMyRequest({
+    professionalId: parsed.data.professionalId,
+    topic: parsed.data.topic,
+    message: parsed.data.message,
+    attachment,
+  });
   if (result === "professional_unavailable") {
     return { errors: { professionalId: ["Esse profissional não está disponível agora. Escolha outro."] }, values: keepValues(formData) };
   }

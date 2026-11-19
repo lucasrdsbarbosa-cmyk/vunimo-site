@@ -35,6 +35,82 @@ const DEMO_REPLIES = [
   "Entendi. Se ajudar, a Orientação explica como silenciar, bloquear e guardar evidências. E conversar com um adulto de confiança pode deixar o próximo passo mais leve. O que você gostaria de fazer agora?",
 ];
 
+const REPORT_SYSTEM = `Você ajuda adolescentes a escrever denúncias de ciberbullying de forma clara.
+Reescreva o rascunho recebido em português do Brasil:
+- Mantenha TODOS os fatos, datas, horários, plataformas e nomes de usuário exatamente como estão. Não invente nada.
+- Tom objetivo e respeitoso, frases curtas, em primeira pessoa (quem escreve é o adolescente).
+- Organize: saudação, o que aconteceu (em ordem de data, em tópicos), o que a pessoa pede, despedida.
+- Não acrescente dados pessoais (nome completo, escola, endereço, telefone) que não estejam no texto.
+- Se houver lacunas entre colchetes, mantenha os colchetes.
+Responda só com o texto final do rascunho, sem comentários.`;
+
+const REPLY_SYSTEM = `Você ajuda profissionais de saúde voluntários da Vunimo a redigir uma primeira resposta a um adolescente (13–17 anos) que sofre ciberbullying.
+Escreva um rascunho em português do Brasil, com no máximo 180 palavras:
+- Acolha e valide o que a pessoa sente; não culpe a vítima.
+- Ofereça 2 ou 3 próximos passos práticos (guardar evidências, bloquear/denunciar, conversar com um adulto de confiança).
+- Não faça diagnóstico nem prometa resultados; não peça dados pessoais nem contato fora da plataforma.
+- Se houver sinal de risco, oriente CVV 188 e SAMU 192 logo no início.
+O profissional vai revisar e editar antes de enviar. Responda só com o rascunho.`;
+
+export type AiTaskResult = { text: string; mode: "ai" | "demo" | "unavailable" };
+
+async function runTask(system: string, input: string, maxTokens: number): Promise<AiTaskResult | null> {
+  if (!aiConfigured()) return null;
+  client ??= new Anthropic();
+  try {
+    const response = await client.beta.messages.create({
+      model: process.env.AI_MODEL || "claude-opus-5-5",
+      max_tokens: maxTokens,
+      output_config: { effort: "low" },
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: input }],
+    });
+    if (response.stop_reason === "refusal") return { text: "", mode: "unavailable" };
+    const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
+    return text ? { text, mode: "ai" } : { text: "", mode: "unavailable" };
+  } catch (error) {
+    if (error instanceof Anthropic.APIError) console.error(`[ia] Erro da API ${error.status}: ${error.message}`);
+    else console.error("[ia] Falha ao chamar a IA:", error);
+    return { text: "", mode: "unavailable" };
+  }
+}
+
+/** Deixa um rascunho de denúncia mais claro, sem mudar os fatos. */
+export async function improveReportDraft(draft: string): Promise<AiTaskResult> {
+  const result = await runTask(REPORT_SYSTEM, draft, 8000);
+  if (result) return result;
+  // Modo demonstração: só organiza o espaçamento, deixando claro que nada foi reescrito.
+  const tidy = draft
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { text: tidy, mode: "demo" };
+}
+
+/** Sugere um rascunho de resposta para o profissional revisar. */
+export async function suggestProfessionalReply(request: { topic: string; message: string; attachment: string }): Promise<AiTaskResult> {
+  const input = `Assunto: ${request.topic}\n\nMensagem do adolescente:\n${request.message}${
+    request.attachment ? `\n\n${request.attachment}` : ""
+  }`;
+  const result = await runTask(REPLY_SYSTEM, input, 4000);
+  if (result) return result;
+  return {
+    mode: "demo",
+    text: `Oi! Obrigado(a) por confiar e escrever para mim. O que você está passando com "${request.topic.toLowerCase()}" não é culpa sua, e faz sentido se sentir assim.
+
+Alguns passos que podem ajudar agora:
+1. Guarde prints com nome de usuário, data e horário antes de bloquear.
+2. Use as opções de silenciar, bloquear e denunciar da plataforma.
+3. Converse com um adulto de confiança — pode ser alguém da família ou da escola.
+
+Se em algum momento você se sentir em perigo, ligue 188 (CVV) ou 192 (SAMU). Estou por aqui para pensar com você no próximo passo.`,
+  };
+}
+
 export function aiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }

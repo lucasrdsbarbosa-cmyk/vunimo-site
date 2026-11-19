@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cancelRequest } from "@/app/actions/youth";
 import { listApprovedProfessionals, listMyRequests } from "@/lib/dal";
+import { listMyTimeline } from "@/lib/dal-tools";
 import { formatDate, STATUS_LABEL } from "@/lib/format";
 import { PageTitle } from "@/components/PageTitle";
 import { Notice } from "@/components/Notice";
@@ -19,7 +20,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default async function RequestsPage({ searchParams }: PageProps<"/app/pedidos">) {
-  const [requests, params] = await Promise.all([listMyRequests(), searchParams]);
+  const [requests, params, timeline] = await Promise.all([listMyRequests(), searchParams, listMyTimeline()]);
   const professionals = listApprovedProfessionals();
   const preselected = typeof params.profissional === "string" ? params.profissional : undefined;
 
@@ -62,6 +63,12 @@ export default async function RequestsPage({ searchParams }: PageProps<"/app/ped
                     {r.topic} · enviado em {formatDate(r.createdAt)}
                   </p>
                   <p className="mt-3 whitespace-pre-wrap">{r.message}</p>
+                  {r.attachment ? (
+                    <details className="mt-3 rounded-xl bg-nevoa/60 px-4 py-2 text-sm">
+                      <summary className="cursor-pointer font-semibold">Resumo anexado</summary>
+                      <p className="mt-2 whitespace-pre-wrap">{r.attachment}</p>
+                    </details>
+                  ) : null}
                   {r.response ? (
                     <div className="mt-4 rounded-2xl bg-nevoa p-4">
                       <p className="text-sm font-semibold text-iris">Resposta de {r.counterpartName.split(" ")[0]}</p>
@@ -103,6 +110,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/app/ped
               <RequestForm
                 professionals={professionals.map((p) => ({ id: p.id, label: `${p.fullName} — ${p.profession}` }))}
                 preselected={preselected}
+                timelineCount={timeline.length}
               />
             </div>
           )}

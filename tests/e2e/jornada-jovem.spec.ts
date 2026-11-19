@@ -4,11 +4,16 @@ import { isMobile, login, testDb, TEST_PASSWORD, uniqueEmail } from "./helpers";
 test.describe("Jornada 1 — jovem que acabou de passar por algo ruim (sem conta)", () => {
   test("encontra onde começar, faz a pausa, lê a orientação e chega ao apoio", async ({ page }, info) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Aconteceu algo ruim");
-    // Ajuda urgente visível logo de cara
-    await expect(page.getByRole("link", { name: "CVV 188" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Presença que abre caminhos.");
+    // Ajuda e segurança acessível logo de cara, sem conta
+    await page.getByRole("button", { name: /Ajuda e segurança/ }).click();
+    const help = page.getByRole("dialog", { name: "Ajuda e segurança" });
+    await expect(help.getByRole("link", { name: /CVV/ })).toBeVisible();
+    await expect(help.getByRole("button", { name: "Sair rápido" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(help).toBeHidden();
 
-    await page.getByRole("link", { name: "Começar agora" }).click();
+    await page.getByRole("link", { name: "Começar agora" }).first().click();
     await expect(page).toHaveURL(/\/comecar$/);
     await expect(page.getByRole("heading", { name: "Como você quer começar?" })).toBeVisible();
 
@@ -139,7 +144,7 @@ test.describe("Jornada 2 — usuário com conta volta para continuar", () => {
       await page.getByRole("button", { name: "Abrir menu" }).click();
       await page.locator("#menu-celular").getByRole("link", { name: "Entrar" }).click();
     } else {
-      await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Entrar" }).click();
+      await page.getByRole("banner").getByRole("link", { name: "Entrar" }).first().click();
     }
     await expect(page).toHaveURL(/\/entrar$/);
     await page.getByLabel("E-mail").fill("jovem@vunimo.test");
@@ -149,7 +154,7 @@ test.describe("Jornada 2 — usuário com conta volta para continuar", () => {
     await expect(page).toHaveURL(/\/app$/);
     await expect(page.getByRole("heading", { name: "Como você quer seguir hoje?" })).toBeVisible();
     await expect(page.getByText("Orientação: Bloquear")).toBeVisible();
-    await expect(page.getByText(/Último registro: Depois da partida/)).toBeVisible();
+    await expect(page.getByText(/Último: Depois da partida/)).toBeVisible();
     await page.getByRole("link", { name: "Continuar" }).click();
     await expect(page).toHaveURL(/\/orientar\/bloquear$/);
 

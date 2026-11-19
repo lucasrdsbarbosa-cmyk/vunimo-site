@@ -63,7 +63,7 @@ export function ChatPanel({ messages }: { messages: Msg[] }) {
         <div ref={endRef} />
       </div>
 
-      {state.risk ? <UrgentHelp tone="card" /> : null}
+      {state.risk ? <UrgentHelp /> : null}
       {state.error ? (
         <p role="alert" className="rounded-xl bg-alerta-bg px-4 py-3 font-semibold text-alerta">
           {state.error}

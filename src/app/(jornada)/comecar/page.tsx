@@ -21,7 +21,7 @@ export default async function StartPage() {
         </p>
       </div>
       <NucleusCards />
-      <UrgentHelp tone="card" />
+      <UrgentHelp />
       <section className="rounded-[var(--radius-card)] bg-nevoa p-6">
         <h2 className="text-xl">Quer guardar o que escrever e voltar depois?</h2>
         <p className="mt-1 text-muted">

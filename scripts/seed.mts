@@ -8,7 +8,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { SCHEMA } from "../src/lib/schema.ts";
+import { migrate, SCHEMA } from "../src/lib/schema.ts";
 
 const TEST_PASSWORD = "Vunimo@teste1";
 
@@ -16,6 +16,7 @@ const file = process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "vuni
 mkdirSync(path.dirname(file), { recursive: true });
 const db = new DatabaseSync(file);
 db.exec(SCHEMA);
+migrate(db);
 
 const now = Date.now();
 const hash = bcrypt.hashSync(TEST_PASSWORD, 12);
@@ -86,6 +87,17 @@ db.prepare(
    VALUES (?, ?, ?, ?, ?, ?, ?)`,
 ).run(randomUUID(), teo, ana, "Exclusão ou isolamento em grupos",
   "Me tiraram do grupo da turma e estão falando de mim em outro grupo. Não sei se conto pra alguém.", now - 7_200_000, now - 7_200_000);
+
+// Linha do tempo fictícia da Lu (para testar rascunho de denúncia e anexo em pedidos).
+const day = (offset: number) => new Date(now - offset * 86_400_000).toISOString().slice(0, 10);
+const tl = db.prepare(
+  `INSERT INTO timeline_events (id, user_id, happened_on, happened_time, platform, kind, description, people,
+     has_evidence, evidence_note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+tl.run(randomUUID(), lu, day(3), "21:40", "Roblox", "Ofensas ou xingamentos",
+  "No chat da partida, começaram a me xingar e chamar os outros para fazer o mesmo.", "jogador_fake123", 1, "Pasta Prints no celular", now, now);
+tl.run(randomUUID(), lu, day(1), "", "WhatsApp", "Exclusão de grupo",
+  "Me removeram do grupo da turma e criaram outro grupo sem mim, onde postaram print da partida.", "", 0, "", now, now);
 
 db.exec("COMMIT");
 

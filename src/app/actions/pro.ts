@@ -2,7 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { rateLimit } from "@/lib/rate-limit";
+import { suggestProfessionalReply } from "@/lib/ai/provider";
 import {
+  getRequestForMe,
+  requireUser,
+  setMyAccepting,
   deleteMyAccount,
   respondToRequest,
   reviewProfessional,
@@ -47,6 +52,24 @@ export async function respondRequest(_prev: FormState, formData: FormData): Prom
   if (!ok) return { message: "Esse pedido não está mais disponível para resposta." };
   revalidatePath("/pro/pedidos");
   return { ok: true, message: status === "closed" ? "Resposta enviada e pedido encerrado." : "Resposta enviada." };
+}
+
+export async function setAccepting(formData: FormData): Promise<void> {
+  await setMyAccepting(formData.get("accepting") === "1");
+  revalidatePath("/pro", "layout");
+  revalidatePath("/conectar");
+  redirect(`/pro?disponibilidade=${formData.get("accepting") === "1" ? "on" : "off"}`);
+}
+
+/** Rascunho de resposta sugerido pela IA. O profissional revisa; nada é enviado automaticamente. */
+export async function suggestReply(requestId: string): Promise<{ text?: string; mode?: string; error?: string }> {
+  const user = await requireUser(["professional"], "/pro/pedidos");
+  const request = await getRequestForMe(requestId);
+  if (!request) return { error: "Pedido não encontrado." };
+  if (!rateLimit(`ai-reply:${user.id}`, 20, 60 * 60 * 1000)) return { error: "Limite de sugestões por hora atingido." };
+  const result = await suggestProfessionalReply(request);
+  if (result.mode === "unavailable") return { error: "A IA não está disponível agora." };
+  return { text: result.text, mode: result.mode };
 }
 
 export async function deleteProfessionalAccount(formData: FormData): Promise<void> {

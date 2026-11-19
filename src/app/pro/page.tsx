@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getMyProfessionalProfile, listRequestsForMe } from "@/lib/dal";
 import { Notice } from "@/components/Notice";
 import { Icon } from "@/components/Icons";
+import { SubmitButton } from "@/components/Form";
+import { setAccepting } from "@/app/actions/pro";
 
 export const metadata: Metadata = { title: "Painel do profissional" };
 
@@ -71,6 +73,30 @@ export default async function ProHome({ searchParams }: PageProps<"/pro">) {
         </div>
       </section>
 
+      {profile.status === "approved" ? (
+        <section aria-labelledby="disponibilidade" className="grid gap-4 rounded-[var(--radius-card)] border border-line bg-white p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-8">
+          <div>
+            <h2 id="disponibilidade" className="text-xl">
+              {profile.accepting ? "Você está recebendo novos pedidos" : "Novos pedidos pausados"}
+            </h2>
+            <p className="mt-1 text-muted">
+              {profile.accepting
+                ? "Seu perfil aparece no diretório do Apoio. Pause quando não puder responder por um tempo."
+                : "Seu perfil não aparece no diretório. Os pedidos em andamento continuam com você."}
+            </p>
+          </div>
+          <form action={setAccepting}>
+            <input type="hidden" name="accepting" value={profile.accepting ? "0" : "1"} />
+            <SubmitButton className={profile.accepting ? "btn btn-secondary" : "btn btn-primary"} pendingLabel="Salvando…">
+              {profile.accepting ? "Pausar novos pedidos" : "Voltar a receber pedidos"}
+            </SubmitButton>
+          </form>
+        </section>
+      ) : null}
+      {params.disponibilidade ? (
+        <Notice>{params.disponibilidade === "on" ? "Você voltou a aparecer no diretório." : "Novos pedidos pausados."}</Notice>
+      ) : null}
+
       <section aria-labelledby="como" className="rounded-[var(--radius-card)] bg-nevoa p-6 sm:p-8">
         <h2 id="como" className="text-xl">
           O que você vê — e o que não vê
@@ -78,11 +104,12 @@ export default async function ProHome({ searchParams }: PageProps<"/pro">) {
         <ul className="mt-3 grid gap-2">
           <li className="flex gap-2">
             <Icon name="check" className="mt-0.5 h-5 w-5 shrink-0 text-ok" />
-            Os pedidos que um jovem escolheu enviar para você: apelido, assunto e mensagem.
+            Os pedidos que um jovem escolheu enviar para você: apelido, assunto, mensagem e, se ele quiser, um resumo
+            da linha do tempo.
           </li>
           <li className="flex gap-2">
             <Icon name="close" className="mt-0.5 h-5 w-5 shrink-0 text-alerta" />
-            Diário, conversas com a IA, e-mail ou idade dos jovens.
+            Diário, conversas com a IA, linha do tempo completa, rascunhos, e-mail ou idade dos jovens.
           </li>
         </ul>
         <Link href="/profissionais#diretrizes" className="link mt-4 inline-block">

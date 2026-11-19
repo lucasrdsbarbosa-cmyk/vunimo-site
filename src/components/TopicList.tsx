@@ -12,7 +12,7 @@ export function TopicList({ current }: { current?: string }) {
             <Link
               href={`/orientar/${t.slug}`}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-16 items-center gap-4 rounded-2xl px-4 py-3 transition-colors ${
+              className={`flex min-h-16 items-center gap-4 rounded-2xl px-4 py-3 vn-card ${
                 active
                   ? "bg-white font-semibold text-iris shadow-[inset_3px_0_0_var(--color-iris)]"
                   : "bg-white/70 hover:bg-white"

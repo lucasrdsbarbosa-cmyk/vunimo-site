@@ -107,5 +107,84 @@ BEGIN SELECT RAISE(ABORT, 'request_owner_fixed'); END;
 
 CREATE TRIGGER IF NOT EXISTS journal_owner_fixed BEFORE UPDATE OF user_id ON journal_entries
 BEGIN SELECT RAISE(ABORT, 'journal_owner_fixed'); END;
+
+-- v2: ferramentas para quem acabou de sofrer ciberbullying (sempre privadas do jovem)
+CREATE TABLE IF NOT EXISTS timeline_events (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  happened_on TEXT NOT NULL,
+  happened_time TEXT NOT NULL DEFAULT '',
+  platform TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  description TEXT NOT NULL,
+  people TEXT NOT NULL DEFAULT '',
+  has_evidence INTEGER NOT NULL DEFAULT 0 CHECK (has_evidence IN (0,1)),
+  evidence_note TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS timeline_user ON timeline_events(user_id, happened_on);
+
+CREATE TABLE IF NOT EXISTS action_plans (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  answers TEXT NOT NULL,
+  done TEXT NOT NULL DEFAULT '[]',
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS report_drafts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient TEXT NOT NULL CHECK (recipient IN ('plataforma','escola','responsavel','safernet')),
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS drafts_user ON report_drafts(user_id, updated_at);
+
+CREATE TRIGGER IF NOT EXISTS timeline_only_youth BEFORE INSERT ON timeline_events
+WHEN (SELECT role FROM users WHERE id = NEW.user_id) IS NOT 'youth'
+BEGIN SELECT RAISE(ABORT, 'timeline_only_youth'); END;
+
+CREATE TRIGGER IF NOT EXISTS plan_only_youth BEFORE INSERT ON action_plans
+WHEN (SELECT role FROM users WHERE id = NEW.user_id) IS NOT 'youth'
+BEGIN SELECT RAISE(ABORT, 'plan_only_youth'); END;
+
+CREATE TRIGGER IF NOT EXISTS drafts_only_youth BEFORE INSERT ON report_drafts
+WHEN (SELECT role FROM users WHERE id = NEW.user_id) IS NOT 'youth'
+BEGIN SELECT RAISE(ABORT, 'drafts_only_youth'); END;
+
+CREATE TRIGGER IF NOT EXISTS timeline_owner_fixed BEFORE UPDATE OF user_id ON timeline_events
+BEGIN SELECT RAISE(ABORT, 'timeline_owner_fixed'); END;
+
+CREATE TRIGGER IF NOT EXISTS drafts_owner_fixed BEFORE UPDATE OF user_id ON report_drafts
+BEGIN SELECT RAISE(ABORT, 'drafts_owner_fixed'); END;
 `;
+
+type MigratableDb = {
+  prepare(sql: string): { all(...args: unknown[]): unknown[] };
+  exec(sql: string): void;
+};
+
+/** Ajustes em bancos criados por versões anteriores (colunas novas e regras atualizadas). */
+export function migrate(db: MigratableDb) {
+  const cols = (table: string) =>
+    (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
+  if (!cols("support_requests").includes("attachment")) {
+    db.exec("ALTER TABLE support_requests ADD COLUMN attachment TEXT NOT NULL DEFAULT ''");
+  }
+  if (!cols("professional_profiles").includes("accepting")) {
+    db.exec("ALTER TABLE professional_profiles ADD COLUMN accepting INTEGER NOT NULL DEFAULT 1 CHECK (accepting IN (0,1))");
+  }
+  // Pedido só para profissional aprovado E aceitando novos pedidos.
+  db.exec(`
+    DROP TRIGGER IF EXISTS request_rules;
+    CREATE TRIGGER request_rules BEFORE INSERT ON support_requests
+    WHEN (SELECT role FROM users WHERE id = NEW.youth_id) IS NOT 'youth'
+      OR (SELECT status FROM professional_profiles WHERE user_id = NEW.professional_id) IS NOT 'approved'
+      OR (SELECT accepting FROM professional_profiles WHERE user_id = NEW.professional_id) IS NOT 1
+    BEGIN SELECT RAISE(ABORT, 'request_rules'); END;
+  `);
+}
 

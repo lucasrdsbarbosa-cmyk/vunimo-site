@@ -15,7 +15,7 @@ export function NucleusCards({ highlight = "pausa", exclude }: { highlight?: str
           <li key={n.key}>
             <Link
               href={n.href}
-              className={`group flex h-full min-h-24 items-center gap-4 rounded-[var(--radius-card)] p-5 transition-colors ${
+              className={`group flex h-full min-h-24 items-center gap-4 rounded-[var(--radius-card)] p-5 vn-card ${
                 featured
                   ? "on-iris bg-iris text-white hover:bg-iris-deep"
                   : "border border-line bg-white hover:border-iris"

@@ -267,7 +267,7 @@ export function listApprovedProfessionals(): PublicProfessional[] {
     db()
       .prepare(
         `SELECT user_id, full_name, profession, registry_number, registry_state, modality, city, specialties, bio
-         FROM professional_profiles WHERE status = 'approved' ORDER BY full_name`,
+         FROM professional_profiles WHERE status = 'approved' AND accepting = 1 ORDER BY full_name`,
       )
       .all() as Record<string, string>[]
   ).map((r) => ({
@@ -295,6 +295,7 @@ export type SupportRequest = {
   createdAt: number;
   updatedAt: number;
   counterpartName: string;
+  attachment: string;
 };
 
 export async function listMyRequests(): Promise<SupportRequest[]> {
@@ -320,6 +321,7 @@ function toRequest(r: Record<string, unknown>): SupportRequest {
     createdAt: r.created_at as number,
     updatedAt: r.updated_at as number,
     counterpartName: r.counterpart as string,
+    attachment: (r.attachment as string) ?? "",
   };
 }
 
@@ -327,10 +329,11 @@ export async function createMyRequest(input: {
   professionalId: string;
   topic: string;
   message: string;
+  attachment: string;
 }): Promise<"ok" | "professional_unavailable" | "too_many_open"> {
   const user = await requireUser(["youth"], "/app/pedidos");
   const approved = db()
-    .prepare("SELECT 1 FROM professional_profiles WHERE user_id = ? AND status = 'approved'")
+    .prepare("SELECT 1 FROM professional_profiles WHERE user_id = ? AND status = 'approved' AND accepting = 1")
     .get(input.professionalId);
   if (!approved) return "professional_unavailable";
   const open = db()
@@ -339,10 +342,10 @@ export async function createMyRequest(input: {
   if (open.n >= 3) return "too_many_open";
   db()
     .prepare(
-      `INSERT INTO support_requests (id, youth_id, professional_id, topic, message, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO support_requests (id, youth_id, professional_id, topic, message, attachment, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(newId(), user.id, input.professionalId, input.topic, input.message, now(), now());
+    .run(newId(), user.id, input.professionalId, input.topic, input.message, input.attachment, now(), now());
   return "ok";
 }
 
@@ -362,6 +365,7 @@ export type ProfessionalProfile = ProfileInput & {
   status: "pending" | "approved" | "rejected";
   reviewNote: string;
   email: string;
+  accepting: boolean;
 };
 
 export async function getMyProfessionalProfile(): Promise<ProfessionalProfile> {
@@ -381,6 +385,7 @@ export async function getMyProfessionalProfile(): Promise<ProfessionalProfile> {
     status: r.status as ProfessionalProfile["status"],
     reviewNote: r.review_note,
     email: user.email,
+    accepting: Number(r.accepting) === 1,
   };
 }
 
@@ -526,4 +531,16 @@ export async function getMyDashboard() {
     conversation: conv && conv.n > 0 ? { updatedAt: conv.updated_at, count: conv.n } : null,
     requests: { answered: answered.n, open: open.n },
   };
+}
+
+/** Profissional aprovado pode pausar o recebimento de novos pedidos (some do diretório). */
+export async function setMyAccepting(accepting: boolean): Promise<void> {
+  const user = await requireUser(["professional"], "/pro");
+  db().prepare("UPDATE professional_profiles SET accepting = ?, updated_at = ? WHERE user_id = ?").run(accepting ? 1 : 0, now(), user.id);
+}
+
+/** Pedido endereçado ao profissional logado (para a IA sugerir um rascunho de resposta). */
+export async function getRequestForMe(id: string): Promise<SupportRequest | null> {
+  const all = await listRequestsForMe();
+  return all.find((r) => r.id === id) ?? null;
 }

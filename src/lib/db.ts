@@ -1,8 +1,8 @@
-﻿import "server-only";
+import "server-only";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { SCHEMA } from "./schema";
+import { migrate, SCHEMA } from "./schema";
 
 /**
  * Banco local (SQLite embutido no Node). Para trocar por Postgres/Supabase,
@@ -25,6 +25,7 @@ function open(): DatabaseSync {
   if (file !== ":memory:") mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 

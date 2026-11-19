@@ -8,9 +8,11 @@ import { REQUEST_TOPICS, type FormState } from "@/lib/validation";
 export function RequestForm({
   professionals,
   preselected,
+  timelineCount = 0,
 }: {
   professionals: { id: string; label: string }[];
   preselected?: string;
+  timelineCount?: number;
 }) {
   const [state, action] = useActionState<FormState, FormData>(createRequest, {});
   const v = state.values ?? {};
@@ -38,6 +40,14 @@ export function RequestForm({
         defaultValue={v.message}
         errors={state.errors?.message}
       />
+      {timelineCount > 0 ? (
+        <div className="rounded-2xl bg-nevoa p-4">
+          <Checkbox name="attachTimeline" defaultChecked={v.attachTimeline === "on"}>
+            Anexar um resumo da minha linha do tempo ({timelineCount} {timelineCount === 1 ? "registro" : "registros"}): data,
+            onde, tipo e descrição. Nomes de usuário e onde guardei os prints <strong>não</strong> vão junto.
+          </Checkbox>
+        </div>
+      ) : null}
       <Checkbox name="privacy" errors={state.errors?.privacy} defaultChecked={v.privacy === "on"}>
         Entendo que só esse profissional vai ler a mensagem, junto com meu apelido, e que a resposta pode levar
         alguns dias.

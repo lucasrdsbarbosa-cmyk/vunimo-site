@@ -22,7 +22,7 @@ export default async function SupportPage() {
       <TrackVisit path="/conectar" />
       <PageTitle title="Encontre um caminho de apoio" subtitle="Canais de ajuda e profissionais que participam da Vunimo." />
 
-      <UrgentHelp tone="card" />
+      <UrgentHelp />
 
       <section aria-labelledby="canais-titulo" id="canais" className="scroll-mt-6">
         <h2 id="canais-titulo" className="text-2xl">

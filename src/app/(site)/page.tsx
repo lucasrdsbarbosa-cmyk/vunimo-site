@@ -1,114 +1,78 @@
 import Link from "next/link";
-import { VunimoSymbol } from "@/components/Logo";
+import { HeroScene } from "@/components/home/HeroScene";
 import { Icon, type IconName } from "@/components/Icons";
 import { Notice } from "@/components/Notice";
-import { NUCLEI } from "@/lib/content";
+import { VunimoSymbol } from "@/components/Logo";
+import { getCurrentUser, homeFor } from "@/lib/session";
 
-const NUCLEUS_ICON: Record<string, IconName> = {
-  pausa: "pause",
-  desabafar: "chat",
-  orientar: "compass",
-  conectar: "people",
-};
+const TOOLS: { icon: IconName; title: string; text: string }[] = [
+  {
+    icon: "evidence",
+    title: "Linha do tempo",
+    text: "Organize o que aconteceu: quando, onde, quem e se você guardou print. Ajuda a lembrar e a pedir ajuda.",
+  },
+  {
+    icon: "check",
+    title: "Plano de próximos passos",
+    text: "Responda quatro perguntas e receba um checklist do que fazer agora, com o passo a passo de cada item.",
+  },
+  {
+    icon: "flag",
+    title: "Rascunho de denúncia",
+    text: "Monte um texto claro para a plataforma, a escola ou um adulto, a partir da sua linha do tempo. Você revisa e decide.",
+  },
+];
 
 export default async function HomePage({ searchParams }: PageProps<"/">) {
-  const params = await searchParams;
+  const [params, user] = await Promise.all([searchParams, getCurrentUser()]);
+  const account = user ? { href: homeFor(user.role), label: "Minha área" } : null;
+
   return (
     <>
-      {params.saiu ? (
-        <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-          <Notice>Você saiu da sua conta.</Notice>
-        </div>
-      ) : null}
-      {params["conta-apagada"] ? (
-        <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-          <Notice>Sua conta e todos os seus dados foram apagados.</Notice>
+      {params.saiu || params["conta-apagada"] ? (
+        <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+          <Notice>
+            {params.saiu ? "Você saiu da sua conta." : "Sua conta e todos os seus dados foram apagados."}
+          </Notice>
         </div>
       ) : null}
 
-      {/* Abertura */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-14 pt-10 sm:px-6 md:grid-cols-[1.15fr_1fr] md:pt-16">
-        <div>
-          <p className="text-lg text-muted">Apoio para a vida online</p>
-          <h1 className="mt-3 text-[2.6rem] leading-[1.05] sm:text-6xl">
-            Aconteceu algo ruim nas redes ou num jogo?
-          </h1>
-          <p className="mt-5 max-w-xl text-xl text-grafite/85">
-            Você não precisa ter todas as respostas agora. A Vunimo te ajuda a fazer uma pausa, colocar em palavras,
-            entender o próximo passo e encontrar apoio — no seu tempo.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/comecar" className="btn btn-primary px-7 text-lg">
-              Começar agora
-            </Link>
-            <Link href="/entrar" className="btn btn-secondary px-7 text-lg">
-              Já tenho conta
-            </Link>
+      <HeroScene account={account} />
+
+      {/* Ferramentas para quando acabou de acontecer */}
+      <section aria-labelledby="ferramentas" className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <div>
+            <p className="text-lg text-muted">Com uma conta</p>
+            <h2 id="ferramentas" className="mt-1 text-3xl sm:text-5xl">
+              Ferramentas para quando acabou de acontecer
+            </h2>
           </div>
-          <p className="mt-4 text-sm text-muted">
-            Não precisa de cadastro para a Pausa, a Orientação e os canais de apoio.
+          <p className="text-lg text-muted">
+            Tudo fica guardado só para você. Nada vai para outra pessoa sem você escolher — nem para profissionais.
           </p>
         </div>
-
-        <div className="on-iris relative overflow-hidden rounded-[2rem] bg-iris p-8 text-white sm:p-10">
-          <VunimoSymbol variant="lima" className="ml-auto h-36 w-36 sm:h-44 sm:w-44" />
-          <p className="mt-6 text-3xl font-semibold leading-tight sm:text-4xl">
-            Seu tempo.
-            <br />
-            Seu próximo passo.
-          </p>
-          <span aria-hidden="true" className="mt-6 block h-1.5 w-32 rounded-full bg-lima" />
-          <p className="mt-6 max-w-xs text-white/90">
-            12,7% dos estudantes de 13 a 17 anos relataram bullying nas redes sociais.
-            <span className="mt-1 block text-sm text-white/75">IBGE, PeNSE 2024</span>
-          </p>
-        </div>
-      </section>
-
-      {/* Metodologia */}
-      <section aria-labelledby="como-funciona" className="bg-white/70">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-          <h2 id="como-funciona" className="text-3xl sm:text-4xl">
-            Quatro caminhos. Você escolhe por onde começar.
-          </h2>
-          <p className="mt-3 max-w-2xl text-lg text-muted">
-            Não existe ordem certa. Dá para fazer só uma pausa hoje e voltar outro dia — com conta, a Vunimo lembra
-            onde você parou.
-          </p>
-          <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-            {NUCLEI.map((n) => (
-              <li key={n.key}>
-                <Link
-                  href={n.href}
-                  className="group flex h-full items-start gap-4 rounded-[var(--radius-card)] border border-line bg-papel p-5 transition-colors hover:border-iris sm:p-6"
-                >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-nevoa text-iris">
-                    <Icon name={NUCLEUS_ICON[n.key]} className="h-6 w-6" />
-                  </span>
-                  <span className="flex-1">
-                    <span className="text-sm font-semibold text-iris">{n.step}</span>
-                    <span className="block text-xl font-semibold">{n.name}</span>
-                    <span className="mt-1 block text-muted">{n.description}</span>
-                  </span>
-                  <Icon name="arrow" className="mt-1 h-5 w-5 text-iris transition-transform group-hover:translate-x-1" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="mt-10 grid gap-4 md:grid-cols-3">
+          {TOOLS.map((t) => (
+            <li key={t.title} className="vn-card rounded-[var(--radius-card)] border border-line bg-white p-6">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lima">
+                <Icon name={t.icon} className="h-6 w-6" />
+              </span>
+              <h3 className="mt-4 text-xl">{t.title}</h3>
+              <p className="mt-2 text-muted">{t.text}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* IA e profissionais */}
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-14 sm:px-6 md:grid-cols-2">
+      <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-20 sm:px-6 md:grid-cols-2">
         <article className="rounded-[var(--radius-card)] bg-nevoa p-6 sm:p-8">
           <span className="inline-flex rounded-full bg-white px-3 py-1 text-sm font-semibold text-iris">IA</span>
           <h2 className="mt-4 text-2xl">Onde a inteligência artificial entra</h2>
           <p className="mt-3 text-grafite/85">
-            Só no Desabafar, e só se você quiser. O assistente se apresenta como IA, ajuda a organizar o que aconteceu e
-            sugere caminhos. Ele não é atendimento profissional e não decide nada por você.
-          </p>
-          <p className="mt-3 text-grafite/85">
-            Prefere não usar IA? O diário funciona sem ela.
+            Só quando você pede, e sempre identificada como IA: na conversa do Desabafar e para deixar um rascunho de
+            denúncia mais claro. Ela não é atendimento profissional e não envia nada por você.
           </p>
         </article>
         <article className="rounded-[var(--radius-card)] border border-line bg-white p-6 sm:p-8">
@@ -117,13 +81,42 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           </span>
           <h2 className="mt-4 text-2xl">Pessoas de verdade, quando você quiser</h2>
           <p className="mt-3 text-grafite/85">
-            Profissionais de saúde com registro conferido pela equipe aparecem no Apoio. Você pode mandar um pedido e
-            receber uma orientação pela Vunimo. Eles nunca veem seu diário nem suas conversas com a IA.
+            Profissionais de saúde com registro conferido pela equipe aparecem no Apoio. Eles só veem o que você
+            escolher enviar — nunca o diário, a conversa com a IA ou a sua linha do tempo inteira.
           </p>
           <Link href="/profissionais" className="link mt-4 inline-block">
             Sou profissional de saúde e quero participar
           </Link>
         </article>
+      </section>
+
+      {/* Chamada final */}
+      <section className="px-3 pb-3">
+        <div className="on-iris relative mx-auto grid max-w-[calc(72rem+24px)] overflow-hidden rounded-[2rem] bg-iris px-6 py-14 text-white sm:px-12 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <h2 className="text-3xl sm:text-5xl">
+              Seu tempo.
+              <br />
+              Seu próximo passo.
+            </h2>
+            <span aria-hidden="true" className="mt-6 block h-1.5 w-28 rounded-full bg-lima" />
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/comecar" className="btn btn-lima vn-press px-7">
+                Começar agora
+              </Link>
+              {account ? (
+                <Link href={account.href} className="btn vn-press bg-white px-7 text-iris">
+                  {account.label}
+                </Link>
+              ) : (
+                <Link href="/cadastro" className="btn vn-press bg-white px-7 text-iris">
+                  Criar conta
+                </Link>
+              )}
+            </div>
+          </div>
+          <VunimoSymbol variant="lima" className="mt-10 h-32 w-32 md:mt-0 md:h-44 md:w-44" />
+        </div>
       </section>
     </>
   );

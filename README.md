@@ -28,11 +28,32 @@ Todas usam a senha **`Vunimo@teste1`** (definida em `scripts/seed.mts`). Rodar o
 
 | E-mail | Papel | Para testar |
 |---|---|---|
-| `jovem@vunimo.test` | jovem (Lu) | "continuar de onde parou", diário com registro |
+| `jovem@vunimo.test` | jovem (Lu) | "continuar de onde parou", diário, linha do tempo com 2 registros |
 | `jovem2@vunimo.test` | jovem (Teo) | tem um pedido aberto para a Ana; diário privado |
 | `psicologa@vunimo.test` | profissional aprovada (Ana) | responder pedidos |
 | `medico@vunimo.test` | profissional em análise (Carlos) | não aparece no diretório nem recebe pedidos |
 | `admin@vunimo.test` | administração | aprovar/recusar profissionais |
+
+## Versão 2 — o que há de novo
+
+Plano e roteiro da abertura: [docs/plano-v2.md](docs/plano-v2.md).
+
+- **Abertura "Duas formas abrem espaço"** (`src/components/home/HeroScene.tsx`): GSAP ScrollTrigger + Timeline com o
+  símbolo original extraído do PDF da identidade. As formas se afastam, atravessam o pôster Íris, a palavra "vunimo"
+  vira o logo do topo e as formas se encaixam como cantos da moldura dos quatro caminhos. Rolagem nativa e reversível;
+  versões próprias para computador e celular; com movimento reduzido (ou sem JS) o conteúdo aparece em fluxo normal.
+- **Ajuda e segurança** (`src/components/HelpMenu.tsx`) substitui a faixa escura: botão no topo de todas as páginas, painel
+  com CVV/SAMU/Polícia, SaferNet, Disque 100 e **Sair rápido**.
+- **Painel do jovem** com retomar, próximo passo do plano, "por onde começar" e todas as ferramentas.
+- **Ferramentas novas** (só do jovem, `src/lib/dal-tools.ts`): linha do tempo, plano de próximos passos (regras fixas em
+  `src/lib/plan.ts`) e rascunho de denúncia com "Melhorar com IA" (reescreve sem mudar fatos; nada é enviado sozinho).
+- **Pedido com resumo anexado**: o jovem escolhe anexar; o resumo não leva nomes de usuário nem onde guardou os prints.
+- **Profissional**: pausar/retomar novos pedidos (sai do diretório) e "Sugerir rascunho" de resposta com IA.
+- Transições: View Transitions entre páginas, menus e botões com movimento próprio — tudo desligado com movimento reduzido.
+
+Como testar a abertura: abra http://localhost:3000, role devagar até a moldura com os quatro caminhos e volte. Para a
+versão reduzida, ative "Reduzir movimento" no sistema (Windows: Configurações › Acessibilidade › Efeitos visuais ›
+Efeitos de animação desligado) e recarregue.
 
 ## O que é público e o que é privado
 
@@ -41,6 +62,7 @@ Todas usam a senha **`Vunimo@teste1`** (definida em `scripts/seed.mts`). Rodar o
 | Pausa, Orientação, canais de apoio | lê | lê | lê | lê |
 | Diretório (só aprovados, sem e-mail) | lê | lê | lê | lê |
 | Diário, conversa com IA, progresso | — | só os seus | nunca | nunca |
+| Linha do tempo, plano, rascunhos de denúncia | — | só os seus | só o resumo que o jovem anexar a um pedido | nunca |
 | Pedido de apoio | — | cria, lê e cancela os seus | lê e responde os endereçados a ele, se aprovado | — |
 | Perfil profissional | — | — | edita o seu (mudar registro volta para análise) | lê todos, aprova/recusa |
 

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, testDb, TEST_PASSWORD, uniqueEmail } from "./helpers";
+import { clearRequests, login, testDb, TEST_PASSWORD, uniqueEmail } from "./helpers";
 
 test.describe("Jornada 3 — profissional de saúde", () => {
   test("entende como participar, se cadastra, é aprovado e responde um pedido", async ({ page }, info) => {
@@ -48,6 +48,7 @@ test.describe("Jornada 3 — profissional de saúde", () => {
     await expect(page.getByText("Profissional aprovado e incluído no diretório.")).toBeVisible();
 
     // Jovem encontra no diretório e envia pedido
+    clearRequests("jovem@vunimo.test");
     await page.context().clearCookies();
     await login(page, "jovem@vunimo.test");
     await page.goto("/conectar");

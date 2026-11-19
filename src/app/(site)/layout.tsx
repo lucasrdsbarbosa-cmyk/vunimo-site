@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
-import { UrgentHelp } from "@/components/UrgentHelp";
 import { Logo } from "@/components/Logo";
 import { getCurrentUser, homeFor } from "@/lib/session";
 
@@ -12,12 +11,11 @@ export default async function SiteLayout({ children }: LayoutProps<"/">) {
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">
         Pular para o conteúdo
       </a>
-      <UrgentHelp />
       <SiteHeader account={account} />
       <main id="conteudo" className="flex-1">
         {children}
       </main>
-      <footer className="mt-16 bg-grafite text-white/85">
+      <footer className="bg-grafite text-white/85">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <Logo variant="negative" />
