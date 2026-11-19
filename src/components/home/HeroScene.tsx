@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { NUCLEI } from "@/lib/content";
+import { MotionToggle } from "./MotionToggle";
 import { Icon, type IconName } from "@/components/Icons";
 import { SYMBOL_PATH_A, SYMBOL_PATH_B, SYMBOL_STROKE, SYMBOL_VIEWBOX, VunimoSymbol } from "@/components/Logo";
 
@@ -44,11 +45,10 @@ export function HeroScene({ account }: { account: Account }) {
     () => {
       const mm = gsap.matchMedia();
       mm.add(
-        {
-          desktop: "(min-width: 768px) and (prefers-reduced-motion: no-preference)",
-          mobile: "(max-width: 767px) and (prefers-reduced-motion: no-preference)",
-        },
+        { desktop: "(min-width: 768px)", mobile: "(max-width: 767px)" },
         (ctx) => {
+          // Só anima se a abertura estiver ativa (padrão do sistema ou escolha da pessoa — ver layout.tsx).
+          if (!document.documentElement.classList.contains("vn-motion")) return;
           const el = root.current!;
           const { desktop } = ctx.conditions as { desktop: boolean; mobile: boolean };
           const q = gsap.utils.selector(el);
@@ -241,6 +241,9 @@ export function HeroScene({ account }: { account: Account }) {
                 )}
               </div>
               <p className="vn-copy-fade vn-note">Pausa, Orientação e Apoio funcionam sem cadastro.</p>
+              <div className="vn-copy-fade">
+                <MotionToggle />
+              </div>
             </div>
             {/* símbolo estático: usado sem JS ou com movimento reduzido */}
             <VunimoSymbol variant="negative" className="vn-static-symbol" />

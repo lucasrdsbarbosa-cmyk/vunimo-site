@@ -53,7 +53,8 @@ Plano e roteiro da abertura: [docs/plano-v2.md](docs/plano-v2.md).
 
 Como testar a abertura: abra http://localhost:3000, role devagar até a moldura com os quatro caminhos e volte. Para a
 versão reduzida, ative "Reduzir movimento" no sistema (Windows: Configurações › Acessibilidade › Efeitos visuais ›
-Efeitos de animação desligado) e recarregue.
+Efeitos de animação desligado) e recarregue. Com o sistema em movimento reduzido, a primeira tela oferece o botão
+"Ver abertura animada" (e depois "Reduzir movimento"); a escolha fica salva só no navegador (`localStorage` `vn-motion`).
 
 ## O que é público e o que é privado
 

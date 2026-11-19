@@ -248,33 +248,33 @@ p {
   .vn-tile-desc { display: block; }
 }
 
-/* Versão de cinema: só com JS (classe "js" no <html>) e movimento permitido */
-@media (prefers-reduced-motion: no-preference) {
-  html.js .vn-stage {
+/* Versão de cinema: classe "vn-motion" no <html> (definida antes da pintura; ver layout.tsx) */
+@media all {
+  html.vn-motion .vn-stage {
     height: calc(100svh - var(--vn-header-h));
     min-height: 34rem;
     overflow: hidden;
   }
-  html.js .vn-poster { position: absolute; inset: 12px; margin: 0; }
-  html.js .vn-poster-inner { height: 100%; max-width: none; padding: 1.5rem 1.25rem; align-content: end; }
-  html.js .vn-static-symbol { display: none; }
-  html.js .vn-copy { gap: 0.7rem; }
+  html.vn-motion .vn-poster { position: absolute; inset: 12px; margin: 0; }
+  html.vn-motion .vn-poster-inner { height: 100%; max-width: none; padding: 1.5rem 1.25rem; align-content: end; }
+  html.vn-motion .vn-static-symbol { display: none; }
+  html.vn-motion .vn-copy { gap: 0.7rem; }
 
-  html.js .vn-deco { display: block; position: absolute; z-index: 0; pointer-events: none; }
-  html.js .vn-deco-1 { right: -8vw; bottom: 6svh; width: 34vw; height: 40svh; border-radius: 999px 0 0 999px; background: var(--color-lima); opacity: 0.5; }
-  html.js .vn-deco-2 { left: -10vw; top: 18svh; width: 34vw; height: 34vw; border-radius: 50%; background: var(--color-nevoa); }
+  html.vn-motion .vn-deco { display: block; position: absolute; z-index: 0; pointer-events: none; }
+  html.vn-motion .vn-deco-1 { right: -8vw; bottom: 6svh; width: 34vw; height: 40svh; border-radius: 999px 0 0 999px; background: var(--color-lima); opacity: 0.5; }
+  html.vn-motion .vn-deco-2 { left: -10vw; top: 18svh; width: 34vw; height: 34vw; border-radius: 50%; background: var(--color-nevoa); }
 
-  html.js .vn-mid { display: block; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-  html.js .vn-mid p { position: absolute; opacity: 0; visibility: hidden; font-weight: 600; line-height: 1.08; letter-spacing: -0.01em; }
-  html.js .vn-mid-1 { left: 1.5rem; right: 1.5rem; bottom: 12svh; color: #fff; font-size: clamp(2rem, 4.6vw, 4.2rem); }
-  html.js .vn-mid-2 { left: 0; right: 0; top: 50%; translate: 0 -50%; text-align: center; color: var(--color-grafite); font-size: clamp(1.8rem, 4vw, 3.4rem); }
+  html.vn-motion .vn-mid { display: block; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  html.vn-motion .vn-mid p { position: absolute; opacity: 0; visibility: hidden; font-weight: 600; line-height: 1.08; letter-spacing: -0.01em; }
+  html.vn-motion .vn-mid-1 { left: 1.5rem; right: 1.5rem; bottom: 12svh; color: #fff; font-size: clamp(2rem, 4.6vw, 4.2rem); }
+  html.vn-motion .vn-mid-2 { left: 0; right: 0; top: 50%; translate: 0 -50%; text-align: center; color: var(--color-grafite); font-size: clamp(1.8rem, 4vw, 3.4rem); }
 
-  html.js .vn-frame-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem 1.5rem; }
-  html.js .vn-frame { width: 100%; background: transparent; }
-  html.js .vn-bracket { display: none; }
-  html.js .vn-frame-head, html.js .vn-tile { opacity: 0; visibility: hidden; }
+  html.vn-motion .vn-frame-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem 1.5rem; }
+  html.vn-motion .vn-frame { width: 100%; background: transparent; }
+  html.vn-motion .vn-bracket { display: none; }
+  html.vn-motion .vn-frame-head, html.vn-motion .vn-tile { opacity: 0; visibility: hidden; }
 
-  html.js .vn-stroke {
+  html.vn-motion .vn-stroke {
     --s: min(58vw, 34svh);
     display: block;
     position: absolute;
@@ -288,20 +288,20 @@ p {
     pointer-events: none;
     will-change: transform;
   }
-  html.js .vn-stroke svg { display: block; width: 100%; height: 100%; overflow: visible; }
-  html.js .vn-stroke path { fill: none; stroke-width: 97.2; stroke-linecap: round; stroke-linejoin: round; }
+  html.vn-motion .vn-stroke svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  html.vn-motion .vn-stroke path { fill: none; stroke-width: 97.2; stroke-linecap: round; stroke-linejoin: round; }
 
   @media (min-width: 768px) {
-    html.js .vn-poster-inner { grid-template-columns: 1fr; align-content: center; padding: 3rem 4rem; }
-    html.js .vn-copy { max-width: min(38rem, 52vw); }
-    html.js .vn-stroke { --s: min(60svh, 34vw); left: calc(73% - var(--s) / 2); top: calc(50% - var(--s) / 2); }
-    html.js .vn-mid-1 { left: 4rem; right: auto; bottom: auto; top: 50%; translate: 0 -50%; max-width: 50vw; }
-    html.js .vn-mid-2 { left: 4rem; right: auto; text-align: left; max-width: 46vw; }
-    html.js .vn-frame-wrap { padding: 3rem 4rem; }
+    html.vn-motion .vn-poster-inner { grid-template-columns: 1fr; align-content: center; padding: 3rem 4rem; }
+    html.vn-motion .vn-copy { max-width: min(38rem, 52vw); }
+    html.vn-motion .vn-stroke { --s: min(60svh, 34vw); left: calc(73% - var(--s) / 2); top: calc(50% - var(--s) / 2); }
+    html.vn-motion .vn-mid-1 { left: 4rem; right: auto; bottom: auto; top: 50%; translate: 0 -50%; max-width: 50vw; }
+    html.vn-motion .vn-mid-2 { left: 4rem; right: auto; text-align: left; max-width: 46vw; }
+    html.vn-motion .vn-frame-wrap { padding: 3rem 4rem; }
   }
   /* Telas baixas no celular: esconde o texto de apoio para caber o enquadramento */
   @media (max-width: 767px) and (max-height: 700px) {
-    html.js .vn-lede, html.js .vn-note { display: none; }
+    html.vn-motion .vn-lede, html.vn-motion .vn-note { display: none; }
   }
 }
 

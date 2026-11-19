@@ -72,6 +72,18 @@ test.describe("Abertura da página inicial", () => {
       const h = await page.evaluate(() => document.documentElement.scrollHeight / innerHeight);
       expect(h).toBeLessThan(8);
     });
+
+    test("a pessoa pode escolher ver a abertura animada mesmo assim, e voltar", async ({ page }) => {
+      await page.goto("/");
+      await page.getByRole("button", { name: "Ver abertura animada" }).click();
+      await expect(page.locator(".vn-stroke-a")).toBeVisible();
+      await expect(page.locator(".vn-hero[data-motion]")).toHaveCount(1);
+      await page.reload();
+      await expect(page.locator(".vn-stroke-a")).toBeVisible(); // escolha lembrada
+      await page.getByRole("button", { name: "Reduzir movimento" }).click();
+      await expect(page.locator(".vn-static-symbol")).toBeVisible();
+      await expect(page.locator(".vn-stroke-a")).toBeHidden();
+    });
   });
 });
 
