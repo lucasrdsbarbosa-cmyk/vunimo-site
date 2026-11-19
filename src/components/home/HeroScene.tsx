@@ -6,7 +6,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { NUCLEI } from "@/lib/content";
-import { MotionToggle } from "./MotionToggle";
 import { Icon, type IconName } from "@/components/Icons";
 import { SYMBOL_PATH_A, SYMBOL_PATH_B, SYMBOL_STROKE, SYMBOL_VIEWBOX, VunimoSymbol } from "@/components/Logo";
 
@@ -241,11 +240,8 @@ export function HeroScene({ account }: { account: Account }) {
                 )}
               </div>
               <p className="vn-copy-fade vn-note">Pausa, Orientação e Apoio funcionam sem cadastro.</p>
-              <div className="vn-copy-fade">
-                <MotionToggle />
-              </div>
             </div>
-            {/* símbolo estático: usado sem JS ou com movimento reduzido */}
+            {/* símbolo estático: usado só sem JS */}
             <VunimoSymbol variant="negative" className="vn-static-symbol" />
           </div>
         </div>

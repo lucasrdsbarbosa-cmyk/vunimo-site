@@ -41,7 +41,8 @@ Plano e roteiro da abertura: [docs/plano-v2.md](docs/plano-v2.md).
 - **Abertura "Duas formas abrem espaço"** (`src/components/home/HeroScene.tsx`): GSAP ScrollTrigger + Timeline com o
   símbolo original extraído do PDF da identidade. As formas se afastam, atravessam o pôster Íris, a palavra "vunimo"
   vira o logo do topo e as formas se encaixam como cantos da moldura dos quatro caminhos. Rolagem nativa e reversível;
-  versões próprias para computador e celular; com movimento reduzido (ou sem JS) o conteúdo aparece em fluxo normal.
+  versões próprias para computador e celular. A abertura roda sempre, mesmo com "reduzir movimento" no sistema
+  (decisão do projeto); só sem JS o conteúdo aparece em fluxo normal.
 - **Ajuda e segurança** (`src/components/HelpMenu.tsx`) substitui a faixa escura: botão no topo de todas as páginas, painel
   com CVV/SAMU/Polícia, SaferNet, Disque 100 e **Sair rápido**.
 - **Painel do jovem** com retomar, próximo passo do plano, "por onde começar" e todas as ferramentas.
@@ -51,10 +52,7 @@ Plano e roteiro da abertura: [docs/plano-v2.md](docs/plano-v2.md).
 - **Profissional**: pausar/retomar novos pedidos (sai do diretório) e "Sugerir rascunho" de resposta com IA.
 - Transições: View Transitions entre páginas, menus e botões com movimento próprio — tudo desligado com movimento reduzido.
 
-Como testar a abertura: abra http://localhost:3000, role devagar até a moldura com os quatro caminhos e volte. Para a
-versão reduzida, ative "Reduzir movimento" no sistema (Windows: Configurações › Acessibilidade › Efeitos visuais ›
-Efeitos de animação desligado) e recarregue. Com o sistema em movimento reduzido, a primeira tela oferece o botão
-"Ver abertura animada" (e depois "Reduzir movimento"); a escolha fica salva só no navegador (`localStorage` `vn-motion`).
+Como testar a abertura: abra http://localhost:3000, role devagar até a moldura com os quatro caminhos e volte.
 
 ## O que é público e o que é privado
 

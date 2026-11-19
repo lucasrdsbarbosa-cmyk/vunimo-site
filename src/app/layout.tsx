@@ -21,13 +21,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="pt-BR" className="h-full antialiased" suppressHydrationWarning>
       <head>
         {/*
-          Antes da pintura: marca que o JS está ativo e decide se a abertura animada roda.
-          Padrão = respeita "reduzir movimento" do sistema; a pessoa pode escolher outra coisa na página (fica salvo só no navegador).
+          Antes da pintura: marca que o JS está ativo e liga a abertura animada (sempre; sem JS fica a versão estática).
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html:
-              "(function(){var d=document.documentElement;d.classList.add('js');var p=null;try{p=localStorage.getItem('vn-motion')}catch(e){}var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;if(p==='on'||(p!=='off'&&!r))d.classList.add('vn-motion')})()",
+            __html: "document.documentElement.classList.add('js','vn-motion')",
           }}
         />
       </head>

@@ -58,31 +58,17 @@ test.describe("Abertura da página inicial", () => {
 
   test.describe("movimento reduzido", () => {
     test.use({ reducedMotion: "reduce" });
-    test("mostra o mesmo conteúdo sem fixar a tela", async ({ page }) => {
+    test("a abertura animada roda mesmo assim, sem opção de desligar", async ({ page }, info) => {
+      const mobile = isMobile(info);
       await page.goto("/");
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.locator(".vn-stroke-a")).toBeHidden();
-      await expect(page.locator(".vn-static-symbol")).toBeVisible();
-      await expect(page.locator("[data-header-logo]")).toBeVisible();
-      await page.getByRole("heading", { name: /Quatro caminhos/ }).scrollIntoViewIfNeeded();
-      await expect(page.locator(".vn-tile-link")).toHaveCount(4);
-      await expect(page.locator(".vn-tile-link").first()).toBeVisible();
-      await expect(page.locator(".vn-bracket-a")).toBeVisible();
-      // Sem espaço extra de cena fixa: a página é curta
-      const h = await page.evaluate(() => document.documentElement.scrollHeight / innerHeight);
-      expect(h).toBeLessThan(8);
-    });
-
-    test("a pessoa pode escolher ver a abertura animada mesmo assim, e voltar", async ({ page }) => {
-      await page.goto("/");
-      await page.getByRole("button", { name: "Ver abertura animada" }).click();
-      await expect(page.locator(".vn-stroke-a")).toBeVisible();
       await expect(page.locator(".vn-hero[data-motion]")).toHaveCount(1);
-      await page.reload();
-      await expect(page.locator(".vn-stroke-a")).toBeVisible(); // escolha lembrada
-      await page.getByRole("button", { name: "Reduzir movimento" }).click();
-      await expect(page.locator(".vn-static-symbol")).toBeVisible();
-      await expect(page.locator(".vn-stroke-a")).toBeHidden();
+      await expect(page.locator(".vn-stroke-a")).toBeVisible();
+      await expect(page.locator(".vn-static-symbol")).toBeHidden();
+      await expect(page.getByRole("button", { name: /Ver abertura animada|Reduzir movimento/ })).toHaveCount(0);
+      await scrollScene(page, 0.35, mobile);
+      await expect(page.locator(".vn-mid-1")).toBeVisible();
+      await scrollScene(page, 1, mobile);
+      await expect(page.locator(".vn-tile-link").first()).toBeVisible();
     });
   });
 });
