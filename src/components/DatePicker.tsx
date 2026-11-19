@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { duration, ease, fade, spring } from "@/lib/motion";
 
 /* Datas como "AAAA-MM-DD", calculadas em UTC para não depender do fuso do aparelho. */
 type YM = { y: number; m: number }; // m: 0–11
@@ -69,7 +71,9 @@ export function DatePicker({
 }) {
   const [value, setValue] = useState(isIso(defaultValue) ? defaultValue! : "");
   const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
+  const [sheet, setSheet] = useState(false);
+  // Com "reduzir movimento", o calendário só aparece (sem subir nem crescer).
+  const reduce = useReducedMotion();
   const [view, setView] = useState<YM>(() => ymOf(value || today));
   const [focus, setFocus] = useState(value || today);
   const [dir, setDir] = useState<"next" | "prev" | null>(null);
@@ -77,7 +81,6 @@ export function DatePicker({
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const focusDay = useRef(false);
-  const returnFocus = useRef(false);
   const titleId = useId();
   const popId = useId();
 
@@ -89,22 +92,16 @@ export function DatePicker({
     setView(ymOf(start));
     setFocus(start);
     setDir(null);
-    setClosing(false);
+    // No celular o calendário vira uma folha que sobe da parte de baixo.
+    setSheet(window.matchMedia("(max-width: 639px)").matches);
     focusDay.current = true;
     setOpen(true);
   }
 
   function close(refocus: boolean) {
     if (!open) return;
-    returnFocus.current = refocus;
-    setClosing(true);
-  }
-
-  function finishClose() {
     setOpen(false);
-    setClosing(false);
-    if (returnFocus.current) triggerRef.current?.focus();
-    returnFocus.current = false;
+    if (refocus) triggerRef.current?.focus();
   }
 
   function showMonth(next: YM) {
@@ -129,23 +126,20 @@ export function DatePicker({
 
   // Leva o foco ao dia certo depois de abrir ou de navegar pelo teclado.
   useEffect(() => {
-    if (!open || closing || !focusDay.current) return;
+    if (!open || !focusDay.current) return;
     focusDay.current = false;
     wrapRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${focus}"]`)?.focus();
-  }, [open, closing, focus, view]);
+  }, [open, focus, view]);
 
   // Clique fora fecha (sem roubar o foco de onde a pessoa clicou).
   useEffect(() => {
-    if (!open || closing) return;
+    if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) {
-        returnFocus.current = false;
-        setClosing(true);
-      }
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
-  }, [open, closing]);
+  }, [open]);
 
   function onGridKey(e: KeyboardEvent<HTMLTableSectionElement>) {
     const wd = utc(focus).getUTCDay();
@@ -184,7 +178,6 @@ export function DatePicker({
     focus.startsWith(`${view.y}-${pad(view.m + 1)}`) && !(limit && focus > limit)
       ? focus
       : clamp(toIso(view.y, view.m, 1));
-  const state = closing ? "closing" : "open";
 
   return (
     <div
@@ -198,10 +191,7 @@ export function DatePicker({
         }
       }}
       onBlur={(e) => {
-        if (open && !closing && e.relatedTarget && !wrapRef.current?.contains(e.relatedTarget as Node)) {
-          returnFocus.current = false;
-          setClosing(true);
-        }
+        if (open && e.relatedTarget && !wrapRef.current?.contains(e.relatedTarget as Node)) setOpen(false);
       }}
     >
       <input type="hidden" name={name} value={value} />
@@ -211,13 +201,13 @@ export function DatePicker({
         type="button"
         className="field-input vn-date-trigger"
         aria-haspopup="dialog"
-        aria-expanded={open && !closing}
+        aria-expanded={open}
         aria-controls={open ? popId : undefined}
         data-invalid={invalid ? "" : undefined}
         data-required={required ? "" : undefined}
         aria-labelledby={`${id}-label ${id}-value`}
         aria-describedby={describedBy}
-        onClick={() => (open && !closing ? close(true) : openCal())}
+        onClick={() => (open ? close(true) : openCal())}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" && !open) {
             e.preventDefault();
@@ -237,19 +227,38 @@ export function DatePicker({
         </svg>
       </button>
 
-      {open ? (
-        <>
-          <div className="vn-cal-backdrop" data-state={state} aria-hidden="true" onClick={() => close(true)} />
-          <div
+      <AnimatePresence>
+        {open && sheet ? (
+          <motion.div
+            key="fundo"
+            className="vn-cal-backdrop"
+            aria-hidden="true"
+            onClick={() => close(true)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={fade}
+          />
+        ) : null}
+        {open ? (
+          <motion.div
+            key="calendario"
             id={popId}
             role="dialog"
             aria-modal="false"
             aria-labelledby={titleId}
             className="vn-cal"
-            data-state={state}
-            onAnimationEnd={(e) => {
-              if (closing && e.target === e.currentTarget) finishClose();
-            }}
+            data-sheet={sheet ? "" : undefined}
+            initial={reduce ? { opacity: 0 } : sheet ? { y: "100%" } : { opacity: 0, y: -6, scale: 0.96 }}
+            animate={reduce ? { opacity: 1 } : sheet ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={
+              reduce
+                ? { opacity: 0, transition: { duration: duration.fast } }
+                : sheet
+                  ? { y: "100%", transition: { duration: duration.base, ease: ease.out } }
+                  : { opacity: 0, scale: 0.97, transition: { duration: duration.fast } }
+            }
+            transition={spring.gentle}
           >
             <div className="vn-cal-head">
               <button
@@ -263,7 +272,7 @@ export function DatePicker({
                 </svg>
               </button>
               <h2 id={titleId} className="vn-cal-title" aria-live="polite">
-                <span key={monthKey}>{monthLabel}</span>
+                <motion.span key={monthKey} className="inline-block" initial={{ opacity: 0, x: dir === "prev" ? -10 : dir === "next" ? 10 : 0 }} animate={{ opacity: 1, x: 0 }} transition={fade}>{monthLabel}</motion.span>
               </h2>
               <button
                 type="button"
@@ -299,7 +308,15 @@ export function DatePicker({
                   ))}
                 </tr>
               </thead>
-              <tbody key={monthKey} className="vn-cal-body" data-dir={dir ?? undefined} onKeyDown={onGridKey}>
+              <motion.tbody
+                key={monthKey}
+                className="vn-cal-body"
+                data-dir={dir ?? undefined}
+                onKeyDown={onGridKey}
+                initial={dir ? { opacity: 0, x: dir === "next" ? 28 : -28 } : false}
+                animate={{ opacity: 1, x: 0 }}
+                transition={spring.gentle}
+              >
                 {weeks.map((week, wi) => (
                   <tr key={wi}>
                     {week.map((iso, di) =>
@@ -329,7 +346,7 @@ export function DatePicker({
                     )}
                   </tr>
                 ))}
-              </tbody>
+              </motion.tbody>
             </table>
 
             <div className="vn-cal-foot">
@@ -345,9 +362,9 @@ export function DatePicker({
               </span>
               {limit ? <span>Sem datas futuras</span> : null}
             </div>
-          </div>
-        </>
-      ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

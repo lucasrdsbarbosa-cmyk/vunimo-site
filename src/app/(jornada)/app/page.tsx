@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
 import { getMyDashboard } from "@/lib/dal";
 import { getMyToolsSummary } from "@/lib/dal-tools";
 import { formatDate } from "@/lib/format";
@@ -121,9 +122,9 @@ export default async function YouthHome({ searchParams }: PageProps<"/app">) {
             Por onde começar
           </h2>
           <p className="mt-1 text-muted">Acabou de acontecer? Estes três passos ajudam a organizar a cabeça.</p>
-          <ol className="mt-5 grid gap-3 md:grid-cols-3">
+          <RevealGroup as="ol" className="mt-5 grid gap-3 md:grid-cols-3">
             {firstSteps.map((s, i) => (
-              <li key={s.href}>
+              <RevealItem key={s.href}>
                 <Link
                   href={s.href}
                   className={`vn-card flex h-full items-start gap-3 rounded-2xl p-4 ${
@@ -143,9 +144,9 @@ export default async function YouthHome({ searchParams }: PageProps<"/app">) {
                     <span className="text-sm text-muted">{s.text}</span>
                   </span>
                 </Link>
-              </li>
+              </RevealItem>
             ))}
-          </ol>
+          </RevealGroup>
         </section>
       ) : null}
 
@@ -155,9 +156,9 @@ export default async function YouthHome({ searchParams }: PageProps<"/app">) {
           Suas ferramentas
         </h2>
         <p className="mt-1 text-muted">Tudo aqui é privado. Só você vê.</p>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <RevealGroup className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {toolList.map((t) => (
-            <li key={t.href}>
+            <RevealItem key={t.href}>
               <Link href={t.href} className="vn-card group flex h-full items-start gap-4 rounded-[var(--radius-card)] border border-line bg-white p-5 hover:border-iris">
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${t.fresh ? "bg-lima" : "bg-nevoa text-iris"}`}>
                   <Icon name={t.icon} className="h-5 w-5" />
@@ -168,9 +169,9 @@ export default async function YouthHome({ searchParams }: PageProps<"/app">) {
                 </span>
                 <Icon name="arrow" className="mt-1 h-5 w-5 text-iris transition-transform group-hover:translate-x-1" />
               </Link>
-            </li>
+            </RevealItem>
           ))}
-        </ul>
+        </RevealGroup>
       </section>
 
       <section aria-labelledby="caminhos">

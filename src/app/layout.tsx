@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PressFeedback } from "@/components/PressFeedback";
+import { MotionRoot } from "@/components/motion/MotionRoot";
 
 export const metadata: Metadata = {
   title: {
@@ -31,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full bg-papel">
-        {children}
+        <MotionRoot>{children}</MotionRoot>
         <PressFeedback />
       </body>
     </html>

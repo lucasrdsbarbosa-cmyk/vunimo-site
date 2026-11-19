@@ -2,6 +2,8 @@
 
 import { useFormStatus } from "react-dom";
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { duration, fade, spring } from "@/lib/motion";
 import { DatePicker } from "./DatePicker";
 
 /** Depois de um envio com erro, leva o foco ao primeiro campo inválido do formulário. */
@@ -278,22 +280,40 @@ export function Checkbox({
 export function FormMessage({ message, ok }: { message?: string; ok?: boolean }) {
   return (
     <div aria-live="polite" role={ok ? "status" : "alert"}>
-      {message ? (
-        <p
-          key={message}
-          data-tone={ok ? "ok" : "error"}
-          className={`vn-msg flex items-start gap-2 rounded-xl px-4 py-3 text-[0.95rem] font-semibold ${
-            ok ? "bg-ok-bg text-ok" : "bg-alerta-bg text-alerta"
-          }`}
-        >
-          {ok ? (
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="vn-msg-check mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12.5l4.5 4.5L19 7.5" />
-            </svg>
-          ) : null}
-          <span>{message}</span>
-        </p>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {message ? (
+          <motion.p
+            key={message}
+            data-tone={ok ? "ok" : "error"}
+            className={`vn-msg flex items-start gap-2 rounded-xl px-4 py-3 text-[0.95rem] font-semibold ${
+              ok ? "bg-ok-bg text-ok" : "bg-alerta-bg text-alerta"
+            }`}
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={ok ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1, y: 0, scale: 1, x: [0, -5, 4, -2, 0] }}
+            exit={{ opacity: 0, transition: fade }}
+            transition={{ default: spring.gentle, x: { duration: duration.slow, ease: "easeInOut", delay: 0.1 } }}
+          >
+            {ok ? (
+              <motion.svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="mt-0.5 h-5 w-5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ scale: 0, rotate: -30 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ ...spring.pop, delay: 0.1 }}
+              >
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </motion.svg>
+            ) : null}
+            <span>{message}</span>
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

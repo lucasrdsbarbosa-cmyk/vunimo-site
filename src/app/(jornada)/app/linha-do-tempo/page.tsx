@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
 import { formatDay, getMyTimelineEvent, listMyTimeline } from "@/lib/dal-tools";
 import { deleteTimelineEvent } from "@/app/actions/tools";
 import { PageTitle } from "@/components/PageTitle";
@@ -53,9 +54,9 @@ export default async function TimelinePage({ searchParams }: PageProps<"/app/lin
               </p>
             </div>
           ) : (
-            <ol className="vn-timeline mt-5">
+            <RevealGroup as="ol" className="vn-timeline mt-5" step={0.08}>
               {events.map((e) => (
-                <li key={e.id} id={`r-${e.id}`} className="vn-timeline-item scroll-mt-24">
+                <RevealItem key={e.id} id={`r-${e.id}`} className="vn-timeline-item scroll-mt-24">
                   <span aria-hidden="true" className="vn-timeline-dot" data-evidence={e.hasEvidence ? "" : undefined} />
                   <div className="rounded-2xl border border-line bg-white p-4 sm:p-5">
                     <p className="text-sm font-semibold text-iris">
@@ -81,9 +82,9 @@ export default async function TimelinePage({ searchParams }: PageProps<"/app/lin
                       </form>
                     </div>
                   </div>
-                </li>
+                </RevealItem>
               ))}
-            </ol>
+            </RevealGroup>
           )}
           {events.length > 0 ? (
             <div className="mt-6 grid gap-2 rounded-2xl bg-nevoa p-5">

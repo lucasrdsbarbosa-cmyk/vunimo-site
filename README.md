@@ -79,6 +79,25 @@ Plano e roteiro da abertura: [docs/plano-v2.md](docs/plano-v2.md).
 - **Profissional**: pausar/retomar novos pedidos (sai do diretório) e "Sugerir rascunho" de resposta com IA.
 - Transições: View Transitions entre páginas, menus e botões com movimento próprio — tudo desligado com movimento reduzido.
 
+### Movimento com Motion (v4)
+
+Base: biblioteca `motion` (antigo Framer Motion), com padrões únicos em `src/lib/motion.ts` (curvas, durações,
+molas `snappy`/`gentle`/`pop`, entrada `fadeUp`, grupos em sequência) e `MotionConfig reducedMotion="user"` na raiz
+(`src/components/motion/MotionRoot.tsx`): com "reduzir movimento", deslocamentos e layout são desligados.
+
+- **Abas:** indicador único que viaja entre os itens com `layoutId` (barra inferior, lateral e topo); ícone ativo com mola.
+- **Topo:** recolhe/volta com `useScroll` + mola, sem mudar de altura; gaveta do celular com altura animada, itens em
+  sequência e Esc para fechar.
+- **Painéis:** conteúdo de "Ajuda e segurança" em sequência; calendário com `AnimatePresence` (entrada/saída, folha no
+  celular) e troca de mês deslizando; mensagens de formulário com entrada, ✓ e balanço no erro.
+- **Conteúdo:** revelação na rolagem (`Reveal`, `RevealGroup`) na página inicial, núcleos, temas da Orientação, painel do
+  jovem e linha do tempo; plano com cartões em sequência e barra de progresso animada; chat com entrada das mensagens.
+- Ficaram em CSS, por serem simples: hover/afundar dos botões e cartões, onda do clique, pontinhos de espera,
+  respiração da Pausa, folhas `<dialog>` e transições entre páginas (View Transitions). A abertura da home segue em GSAP.
+
+Checkpoint anterior a esta versão: tag `checkpoint-antes-motion-2026-11-19` (instruções em
+`../backups/2026-11-19-antes-motion/RESTAURAR.md`).
+
 ### Interações (v3)
 
 - **Clique:** onda curta a partir do ponto tocado em botões (`src/components/PressFeedback.tsx`), botão afunda ao

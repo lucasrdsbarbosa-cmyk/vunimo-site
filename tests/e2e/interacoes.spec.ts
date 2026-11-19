@@ -19,15 +19,42 @@ async function scrollInSteps(page: Page, total: number, step = 120) {
   await page.waitForTimeout(500);
 }
 
+/** O indicador (.vn-ind) está dentro do item ativo e alinhado a ele. */
 const indicatorMatchesActive = (page: Page, navSelector: string) =>
   page.evaluate((sel) => {
-    const nav = [...document.querySelectorAll<HTMLElement>(sel)].find((n) => n.offsetParent !== null || getComputedStyle(n).position === "fixed")!;
+    const nav = document.querySelector<HTMLElement>(sel)!;
     const ind = nav.querySelector<HTMLElement>(".vn-ind")!;
     const active = nav.querySelector<HTMLElement>('[aria-current="page"]')!;
-    const a = active.getBoundingClientRect();
+    const host = active.closest("li") ?? active;
+    const a = host.getBoundingClientRect();
     const i = ind.getBoundingClientRect();
-    return { dx: Math.abs(a.left - i.left), dy: Math.abs(a.top - i.top), visible: ind.hasAttribute("data-visible") };
+    return { dx: Math.abs(a.left - i.left), dy: Math.abs(a.top - i.top), count: nav.querySelectorAll(".vn-ind").length };
   }, navSelector);
+
+type Sample = { x: number; y: number; o: number; t: string };
+/** Grava, quadro a quadro, posição/opacidade/transform do primeiro elemento que casa com o seletor. */
+async function startSampling(page: Page, selector: string, ms: number) {
+  await page.evaluate(
+    ([sel, dur]) => {
+      const w = window as unknown as { __samples: Sample[] };
+      w.__samples = [];
+      const end = performance.now() + (dur as number);
+      const loop = () => {
+        const el = document.querySelector<HTMLElement>(sel as string);
+        if (el) {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          w.__samples.push({ x: r.left, y: r.top, o: Number(cs.opacity), t: cs.transform });
+        }
+        if (performance.now() < end) requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    },
+    [selector, ms] as const,
+  );
+}
+const readSamples = (page: Page) => page.evaluate(() => (window as unknown as { __samples: Sample[] }).__samples);
+const between = (v: number, a: number, b: number) => v > Math.min(a, b) + 2 && v < Math.max(a, b) - 2;
 
 test.describe("Interações com movimento", () => {
   test.use({ reducedMotion: "no-preference" });
@@ -53,40 +80,55 @@ test.describe("Interações com movimento", () => {
     await page.goto("/app");
     const navSel = mobile ? 'nav[style*="vn-tabbar"]' : 'aside nav[aria-label="Navegação principal"]';
     const nav = page.locator(navSel);
-    const ind = nav.locator(".vn-ind");
-    await expect(ind).toHaveAttribute("data-visible", "");
-    expect(await ind.evaluate((el) => getComputedStyle(el).transitionDuration)).toContain("0.45s");
+    await expect(nav.locator(".vn-ind")).toHaveCount(1);
+    const from = (await nav.locator(".vn-ind").boundingBox())!;
+    const to = (await nav.getByRole("link", { name: "Orientação" }).locator("xpath=..").boundingBox())!;
 
+    // O mesmo indicador (layoutId do Motion) percorre o caminho entre as abas
+    await startSampling(page, `${navSel} .vn-ind`, 1200);
     await nav.getByRole("link", { name: "Orientação" }).click();
     await expect(page).toHaveURL(/\/orientar$/);
     await expect(nav.getByRole("link", { name: "Orientação" })).toHaveAttribute("aria-current", "page");
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(1300);
+    const samples = await readSamples(page);
+    const axis = mobile ? "x" : "y";
+    expect(samples.some((s) => between(s[axis], from[axis], to[axis]))).toBe(true);
     const m = await indicatorMatchesActive(page, navSel);
-    expect(m.visible).toBe(true);
+    expect(m.count).toBe(1);
     expect(m.dx).toBeLessThan(2);
     expect(m.dy).toBeLessThan(2);
     // A aba recém-ativada dá um pulinho
-    await expect(nav.locator('[aria-current="page"] .vn-tab-icon')).toHaveAttribute("data-active", "");
+    await expect(nav.locator('[aria-current="page"] [data-active]')).toHaveCount(1);
   });
 
   test("site público: menu e caixinhas abrem com animação", async ({ page }, info) => {
     await page.goto("/sobre");
     if (isMobile(info)) {
+      // Gaveta: altura animada pelo Motion, itens em sequência; Esc fecha e devolve o foco
+      await startSampling(page, "#menu-celular", 700);
       await page.getByRole("button", { name: "Abrir menu" }).click();
       await expect(page.locator("#menu-celular")).toHaveAttribute("data-open", "");
       await expect(page.locator("#menu-celular").getByRole("link", { name: "Orientação" })).toBeVisible();
-      await page.getByRole("button", { name: "Fechar menu" }).click();
+      await page.waitForTimeout(750);
+      expect((await readSamples(page)).length).toBeGreaterThan(3);
+      await page.keyboard.press("Escape");
+      await expect(page.locator("#menu-celular")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Abrir menu" })).toBeFocused();
     } else {
-      // Traço Lima desliza até o link ativo do topo
-      await expect(page.locator(".vn-ind-top")).toHaveAttribute("data-visible", "");
+      // Traço Lima sob o link ativo do topo
+      await expect(page.locator(".vn-ind-top")).toHaveCount(1);
       const m = await indicatorMatchesActive(page, 'header nav[aria-label="Principal"]');
-      expect(m.visible).toBe(true);
       expect(m.dx).toBeLessThan(2);
     }
+    // Painel de ajuda: o conteúdo entra em sequência (opacidade sobe de 0 a 1)
+    await startSampling(page, '[aria-labelledby="help-title"] h3', 900);
     await page.getByRole("button", { name: "Ajuda e segurança" }).click();
     const sheet = page.getByRole("dialog", { name: "Ajuda e segurança" });
     await expect(sheet).toBeVisible();
-    expect(await sheet.locator(".vn-sheet-item").first().evaluate((el) => getComputedStyle(el).animationName)).toBe("vn-step-in");
+    await page.waitForTimeout(950);
+    const ops = (await readSamples(page)).map((s) => s.o);
+    expect(Math.min(...ops)).toBeLessThan(0.5);
+    expect(ops.at(-1)).toBe(1);
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
   });
@@ -121,10 +163,14 @@ test.describe("Interações com movimento", () => {
 
     const trigger = page.getByRole("button", { name: /Quando aconteceu/ });
     await expect(trigger).toContainText("(hoje)");
+    await startSampling(page, ".vn-cal", 600);
     await trigger.click();
     const cal = page.getByRole("dialog", { name: /\d{4}/ });
     await expect(cal).toBeVisible();
-    expect(await cal.evaluate((el) => getComputedStyle(el).animationName)).toMatch(/vn-cal-in|vn-sheet-up/);
+    await page.waitForTimeout(650);
+    // Entrada animada: no computador aparece e cresce; no celular sobe de baixo
+    const calSamples = await readSamples(page);
+    expect(calSamples.some((s) => (isMobile(info) ? s.t !== "none" && !/matrix\(1, 0, 0, 1, 0, 0\)/.test(s.t) : s.o < 1))).toBe(true);
     if (isMobile(info)) {
       const b = (await cal.boundingBox())!;
       expect(Math.round(b.y + b.height)).toBeGreaterThanOrEqual(page.viewportSize()!.height - 2); // folha de baixo
@@ -181,6 +227,43 @@ test.describe("Interações com movimento", () => {
   });
 });
 
+test.describe("Páginas sem erros de execução", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("páginas públicas e da área do jovem abrem, rolam e revelam o conteúdo sem erros", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(`console: ${m.text()}`);
+    });
+    const visit = async (path: string) => {
+      await page.goto(path);
+      // Rola até o fim, em passos, como uma pessoa faria
+      for (let i = 0; i < 40; i++) {
+        const atEnd = await page.evaluate(() => {
+          window.scrollBy(0, 400);
+          return window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+        });
+        await page.waitForTimeout(80);
+        if (atEnd) break;
+      }
+      await page.waitForTimeout(700);
+      // Tudo que estava escondido para a revelação ficou visível
+      // (a abertura da página inicial tem estados próprios, controlados pelo GSAP, e fica de fora)
+      const hidden = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>("main *, section *")]
+          .filter((el) => !el.closest(".vn-hero") && el.style.opacity === "0" && el.getBoundingClientRect().height > 0)
+          .map((el) => `${el.tagName.toLowerCase()}.${el.className.toString().slice(0, 40)}`),
+      );
+      expect(hidden, `elementos ainda invisíveis em ${path}`).toEqual([]);
+    };
+    for (const p of ["/", "/comecar", "/orientar", "/orientar/bloquear", "/conectar", "/sobre", "/profissionais", "/pausa"]) await visit(p);
+    await login(page, LU);
+    for (const p of ["/app", "/app/linha-do-tempo", "/app/plano", "/app/diario", "/app/conversa", "/app/pedidos"]) await visit(p);
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe("Com movimento reduzido no sistema", () => {
   test.use({ reducedMotion: "reduce" });
 
@@ -195,15 +278,27 @@ test.describe("Com movimento reduzido no sistema", () => {
     await page.mouse.up();
 
     await login(page, LU);
-    await page.goto("/app/linha-do-tempo");
+    await page.goto("/app");
+    // Indicador da aba: troca de lugar sem percorrer o caminho
     const navSel = isMobile(info) ? 'nav[style*="vn-tabbar"]' : 'aside nav[aria-label="Navegação principal"]';
-    const dur = await page.locator(`${navSel} .vn-ind`).evaluate((el) => parseFloat(getComputedStyle(el).transitionDuration));
-    expect(dur).toBeLessThan(0.01);
+    const nav = page.locator(navSel);
+    const from = (await nav.locator(".vn-ind").boundingBox())!;
+    const to = (await nav.getByRole("link", { name: "Orientação" }).locator("xpath=..").boundingBox())!;
+    await startSampling(page, `${navSel} .vn-ind`, 1000);
+    await nav.getByRole("link", { name: "Orientação" }).click();
+    await expect(nav.getByRole("link", { name: "Orientação" })).toHaveAttribute("aria-current", "page");
+    await page.waitForTimeout(1050);
+    const axis = isMobile(info) ? "x" : "y";
+    expect((await readSamples(page)).some((s) => between(s[axis], from[axis], to[axis]))).toBe(false);
 
+    // Calendário: sem deslocamento nem escala ao abrir
+    await page.goto("/app/linha-do-tempo");
+    await startSampling(page, ".vn-cal", 500);
     await page.getByRole("button", { name: /Quando aconteceu/ }).click();
     const cal = page.getByRole("dialog", { name: /\d{4}/ });
     await expect(cal).toBeVisible();
-    expect(parseFloat(await cal.evaluate((el) => getComputedStyle(el).animationDuration))).toBeLessThan(0.01);
+    await page.waitForTimeout(550);
+    for (const s of await readSamples(page)) expect(s.t === "none" || /^matrix\(1, 0, 0, 1, 0, 0\)$/.test(s.t)).toBe(true);
     await page.keyboard.press("Escape");
     await expect(cal).toBeHidden();
   });

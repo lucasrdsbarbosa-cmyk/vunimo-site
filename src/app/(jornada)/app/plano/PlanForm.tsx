@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { motion } from "motion/react";
+import { duration, ease } from "@/lib/motion";
 import { savePlanAnswers } from "@/app/actions/tools";
 import { FocusFirstError, FormMessage, SubmitButton } from "@/components/Form";
 import { PLAN_QUESTIONS } from "@/lib/plan";
@@ -23,7 +25,14 @@ export function PlanForm() {
         const multi = key === "kinds";
         const err = state.errors?.[key];
         return (
-          <fieldset key={key} data-invalid={err ? "" : undefined} className="vn-step-card grid gap-3 rounded-2xl border border-line bg-white p-5" style={{ "--i": i } as React.CSSProperties}>
+          <motion.fieldset
+            key={key}
+            data-invalid={err ? "" : undefined}
+            className="grid gap-3 rounded-2xl border border-line bg-white p-5"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: duration.slow, ease: ease.out, delay: i * 0.06 }}
+          >
             <legend className="sr-only">{q.label}</legend>
             <p aria-hidden="true" className="flex items-center gap-3 text-lg font-semibold">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-nevoa text-sm text-iris">{i + 1}</span>
@@ -43,7 +52,7 @@ export function PlanForm() {
               ))}
             </div>
             {err ? <p className="text-sm font-semibold text-alerta">{err[0]}</p> : null}
-          </fieldset>
+          </motion.fieldset>
         );
       })}
       <p className="text-sm text-muted">Suas respostas ficam salvas só para você e servem para montar o checklist.</p>

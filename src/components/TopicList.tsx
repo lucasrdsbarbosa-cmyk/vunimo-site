@@ -1,14 +1,15 @@
 import Link from "next/link";
+import { RevealGroup, RevealItem } from "./motion/Reveal";
 import { TOPICS } from "@/lib/content";
 import { Icon } from "./Icons";
 
 export function TopicList({ current }: { current?: string }) {
   return (
-    <ul className="grid gap-2">
+    <RevealGroup className="grid gap-2" still={Boolean(current)}>
       {TOPICS.map((t) => {
         const active = t.slug === current;
         return (
-          <li key={t.slug}>
+          <RevealItem key={t.slug}>
             <Link
               href={`/orientar/${t.slug}`}
               aria-current={active ? "page" : undefined}
@@ -25,9 +26,9 @@ export function TopicList({ current }: { current?: string }) {
               </span>
               <Icon name="arrow" className="h-5 w-5 shrink-0 text-iris" />
             </Link>
-          </li>
+          </RevealItem>
         );
       })}
-    </ul>
+    </RevealGroup>
   );
 }

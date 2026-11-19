@@ -3,6 +3,7 @@ import { HeroScene } from "@/components/home/HeroScene";
 import { Icon, type IconName } from "@/components/Icons";
 import { Notice } from "@/components/Notice";
 import { VunimoSymbol } from "@/components/Logo";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/Reveal";
 import { getCurrentUser, homeFor } from "@/lib/session";
 
 const TOOLS: { icon: IconName; title: string; text: string }[] = [
@@ -41,7 +42,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* Ferramentas para quando acabou de acontecer */}
       <section aria-labelledby="ferramentas" className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+        <Reveal className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <div>
             <p className="text-lg text-muted">Com uma conta</p>
             <h2 id="ferramentas" className="mt-1 text-3xl sm:text-5xl">
@@ -51,31 +52,31 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <p className="text-lg text-muted">
             Tudo fica guardado só para você. Nada vai para outra pessoa sem você escolher — nem para profissionais.
           </p>
-        </div>
-        <ul className="mt-10 grid gap-4 md:grid-cols-3">
+        </Reveal>
+        <RevealGroup className="mt-10 grid gap-4 md:grid-cols-3" step={0.08}>
           {TOOLS.map((t) => (
-            <li key={t.title} className="vn-card rounded-[var(--radius-card)] border border-line bg-white p-6">
+            <RevealItem key={t.title} className="vn-card rounded-[var(--radius-card)] border border-line bg-white p-6">
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lima">
                 <Icon name={t.icon} className="h-6 w-6" />
               </span>
               <h3 className="mt-4 text-xl">{t.title}</h3>
               <p className="mt-2 text-muted">{t.text}</p>
-            </li>
+            </RevealItem>
           ))}
-        </ul>
+        </RevealGroup>
       </section>
 
       {/* IA e profissionais */}
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-20 sm:px-6 md:grid-cols-2">
-        <article className="rounded-[var(--radius-card)] bg-nevoa p-6 sm:p-8">
+      <RevealGroup as="section" className="mx-auto grid max-w-6xl gap-6 px-4 pb-20 sm:px-6 md:grid-cols-2" step={0.1}>
+        <RevealItem as="article" className="rounded-[var(--radius-card)] bg-nevoa p-6 sm:p-8">
           <span className="inline-flex rounded-full bg-white px-3 py-1 text-sm font-semibold text-iris">IA</span>
           <h2 className="mt-4 text-2xl">Onde a inteligência artificial entra</h2>
           <p className="mt-3 text-grafite/85">
             Só quando você pede, e sempre identificada como IA: na conversa do Desabafar e para deixar um rascunho de
             denúncia mais claro. Ela não é atendimento profissional e não envia nada por você.
           </p>
-        </article>
-        <article className="rounded-[var(--radius-card)] border border-line bg-white p-6 sm:p-8">
+        </RevealItem>
+        <RevealItem as="article" className="rounded-[var(--radius-card)] border border-line bg-white p-6 sm:p-8">
           <span className="inline-flex rounded-full bg-lima px-3 py-1 text-sm font-semibold text-grafite">
             Profissionais
           </span>
@@ -87,12 +88,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <Link href="/profissionais" className="link mt-4 inline-block">
             Sou profissional de saúde e quero participar
           </Link>
-        </article>
-      </section>
+        </RevealItem>
+      </RevealGroup>
 
       {/* Chamada final */}
       <section className="px-3 pb-3">
-        <div className="on-iris relative mx-auto grid max-w-[calc(72rem+24px)] overflow-hidden rounded-[2rem] bg-iris px-6 py-14 text-white sm:px-12 md:grid-cols-[1fr_auto] md:items-center">
+        <Reveal className="on-iris relative mx-auto grid max-w-[calc(72rem+24px)] overflow-hidden rounded-[2rem] bg-iris px-6 py-14 text-white sm:px-12 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             <h2 className="text-3xl sm:text-5xl">
               Seu tempo.
@@ -116,7 +117,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             </div>
           </div>
           <VunimoSymbol variant="lima" className="mt-10 h-32 w-32 md:mt-0 md:h-44 md:w-44" />
-        </div>
+        </Reveal>
       </section>
     </>
   );

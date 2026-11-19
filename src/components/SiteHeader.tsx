@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { duration, ease, fadeUp, spring, staggerGroup } from "@/lib/motion";
 import { Logo } from "./Logo";
 import { Icon } from "./Icons";
 import { HelpMenu } from "./HelpMenu";
 import { AutoHideHeader } from "./AutoHideHeader";
-import { useSlidingIndicator } from "./useSlidingIndicator";
+import { slideType } from "./NavLinks";
 
 const LINKS = [
   { href: "/comecar", label: "Começar" },
@@ -26,8 +28,22 @@ export function SiteHeader({ account }: { account: { href: string; label: string
     setLastPath(pathname);
     setOpen(false);
   }
+  const indicator = useId();
   const activeIndex = LINKS.findIndex((l) => l.href === pathname);
-  const { rootRef, indRef } = useSlidingIndicator<HTMLElement, HTMLSpanElement>(activeIndex);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  // Esc fecha o menu e devolve o foco ao botão.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <AutoHideHeader
@@ -37,21 +53,26 @@ export function SiteHeader({ account }: { account: { href: string; label: string
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Logo dockTarget={pathname === "/"} />
 
-        <nav ref={rootRef} aria-label="Principal" className="relative hidden items-center gap-0.5 lg:flex">
-          <span ref={indRef} aria-hidden="true" className="vn-ind vn-ind-top" />
-          {LINKS.map((l, i) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              transitionTypes={activeIndex >= 0 && i !== activeIndex ? [i > activeIndex ? "vn-forward" : "vn-back"] : undefined}
-              aria-current={i === activeIndex ? "page" : undefined}
-              className={`vn-underline rounded-full px-3 py-2 text-[0.97rem] transition-colors ${
-                i === activeIndex ? "font-semibold text-iris" : "text-grafite hover:text-iris"
-              }`}
-            >
-              {l.label}
-            </Link>
-          ))}
+        <nav aria-label="Principal" className="hidden items-center gap-0.5 lg:flex">
+          {LINKS.map((l, i) => {
+            const active = i === activeIndex;
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                transitionTypes={slideType(i, activeIndex)}
+                aria-current={active ? "page" : undefined}
+                className={`vn-underline relative rounded-full px-3 py-2 text-[0.97rem] transition-colors ${
+                  active ? "font-semibold text-iris" : "text-grafite hover:text-iris"
+                }`}
+              >
+                {active ? (
+                  <motion.span layoutId={`topo-${indicator}`} transition={spring.snappy} aria-hidden="true" className="vn-ind vn-ind-top" />
+                ) : null}
+                {l.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -73,6 +94,7 @@ export function SiteHeader({ account }: { account: { href: string; label: string
             )}
           </div>
           <button
+            ref={toggleRef}
             type="button"
             className="vn-press flex h-11 w-11 items-center justify-center rounded-full bg-nevoa text-grafite lg:hidden"
             aria-expanded={open}
@@ -89,44 +111,61 @@ export function SiteHeader({ account }: { account: { href: string; label: string
         </div>
       </div>
 
-      <div id="menu-celular" className="vn-drawer lg:hidden" data-open={open ? "" : undefined} inert={!open}>
-        <div className="overflow-hidden">
-          <nav aria-label="Principal" className="border-t border-line px-4 pb-5 pt-2 sm:px-6">
-            <ul className="grid">
-              {LINKS.map((l, i) => (
-                <li key={l.href} style={{ "--i": i } as React.CSSProperties} className="vn-drawer-item">
-                  <Link
-                    href={l.href}
-                    className={`flex min-h-12 items-center justify-between border-b border-line/70 text-lg ${
-                      pathname === l.href ? "font-semibold text-iris" : ""
-                    }`}
-                    aria-current={pathname === l.href ? "page" : undefined}
-                  >
-                    {l.label}
-                    <Icon name="arrow" className="h-5 w-5 text-iris" />
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="menu"
+            id="menu-celular"
+            data-open=""
+            className="overflow-hidden lg:hidden"
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0, transition: { duration: duration.base, ease: ease.out } }}
+            transition={spring.gentle}
+          >
+            <motion.nav
+              aria-label="Principal"
+              className="border-t border-line px-4 pb-5 pt-2 sm:px-6"
+              initial="hidden"
+              animate="show"
+              variants={staggerGroup(0.04, 0.05)}
+            >
+              <ul className="grid">
+                {LINKS.map((l) => (
+                  <motion.li key={l.href} variants={fadeUp}>
+                    <Link
+                      href={l.href}
+                      className={`flex min-h-12 items-center justify-between border-b border-line/70 text-lg ${
+                        pathname === l.href ? "font-semibold text-iris" : ""
+                      }`}
+                      aria-current={pathname === l.href ? "page" : undefined}
+                    >
+                      {l.label}
+                      <Icon name="arrow" className="h-5 w-5 text-iris" />
+                    </Link>
+                  </motion.li>
+                ))}
+              </ul>
+              <motion.div variants={fadeUp} className="mt-4 grid gap-2 sm:grid-cols-2">
+                {account ? (
+                  <Link href={account.href} className="btn btn-primary">
+                    {account.label}
                   </Link>
-                </li>
-              ))}
-            </ul>
-            <div className="vn-drawer-item mt-4 grid gap-2 sm:grid-cols-2" style={{ "--i": LINKS.length } as React.CSSProperties}>
-              {account ? (
-                <Link href={account.href} className="btn btn-primary">
-                  {account.label}
-                </Link>
-              ) : (
-                <>
-                  <Link href="/cadastro" className="btn btn-primary">
-                    Criar conta
-                  </Link>
-                  <Link href="/entrar" className="btn btn-secondary">
-                    Entrar
-                  </Link>
-                </>
-              )}
-            </div>
-          </nav>
-        </div>
-      </div>
+                ) : (
+                  <>
+                    <Link href="/cadastro" className="btn btn-primary">
+                      Criar conta
+                    </Link>
+                    <Link href="/entrar" className="btn btn-secondary">
+                      Entrar
+                    </Link>
+                  </>
+                )}
+              </motion.div>
+            </motion.nav>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </AutoHideHeader>
   );
 }

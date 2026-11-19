@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useOptimistic, useRef } from "react";
+import { useActionState, useEffect, useOptimistic, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { duration, fade, spring } from "@/lib/motion";
 import { sendChatMessage, type ChatState } from "@/app/actions/youth";
 import { Icon } from "@/components/Icons";
 import { UrgentHelp } from "@/components/UrgentHelp";
@@ -18,6 +20,8 @@ export function ChatPanel({ messages }: { messages: Msg[] }) {
     return sendChatMessage(prev, formData);
   }, {});
   const endRef = useRef<HTMLDivElement>(null);
+  // Mensagens que já estavam na tela ao abrir não animam; só as novas entram.
+  const [firstCount] = useState(messages.length);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -41,8 +45,16 @@ export function ChatPanel({ messages }: { messages: Msg[] }) {
           </div>
         ) : (
           <ol className="grid gap-3">
-            {optimistic.map((m) => (
-              <li key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            {optimistic.map((m, i) => (
+              <motion.li
+                // A posição na conversa é estável: a mensagem otimista vira a gravada sem piscar.
+                key={`m-${i}`}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                initial={i >= firstCount ? { opacity: 0, y: 10, scale: 0.97 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={spring.gentle}
+                style={{ transformOrigin: m.role === "user" ? "100% 100%" : "0% 100%" }}
+              >
                 <div
                   className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 ${
                     m.role === "user" ? "rounded-br-md bg-iris text-white" : "rounded-bl-md bg-nevoa text-grafite"
@@ -51,13 +63,29 @@ export function ChatPanel({ messages }: { messages: Msg[] }) {
                   <span className="sr-only">{m.role === "user" ? "Você:" : "IA:"} </span>
                   {m.content}
                 </div>
-              </li>
+              </motion.li>
             ))}
-            {pending ? (
-              <li className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-md bg-nevoa px-4 py-3 text-muted">A IA está escrevendo…</div>
-              </li>
-            ) : null}
+            <AnimatePresence>
+              {pending ? (
+                <motion.li
+                  key="digitando"
+                  className="flex justify-start"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: duration.fast } }}
+                  transition={fade}
+                >
+                  <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md bg-nevoa px-4 py-3 text-muted">
+                    A IA está escrevendo
+                    <span className="vn-dots" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  </div>
+                </motion.li>
+              ) : null}
+            </AnimatePresence>
           </ol>
         )}
         <div ref={endRef} />

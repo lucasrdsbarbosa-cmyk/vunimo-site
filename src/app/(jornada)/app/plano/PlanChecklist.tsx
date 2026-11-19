@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
+import { motion } from "motion/react";
+import { fadeUp, spring, staggerGroup } from "@/lib/motion";
 import { togglePlanStep } from "@/app/actions/tools";
 import { Icon } from "@/components/Icons";
 import type { PlanStep } from "@/lib/plan";
@@ -32,20 +34,25 @@ export function PlanChecklist({ steps, done }: { steps: PlanStep[]; done: string
           aria-valuenow={count}
           aria-label="Progresso do plano"
         >
-          <div className="vn-progress h-full rounded-full bg-iris" style={{ width: `${pct}%` }} />
+          <motion.div
+            className="h-full bg-iris"
+            initial={false}
+            animate={{ clipPath: `inset(0 ${100 - pct}% 0 0 round 999px)` }}
+            transition={spring.gentle}
+          />
         </div>
       </div>
 
-      <ol className="grid gap-3">
-        {steps.map((s, i) => {
+      <motion.ol className="grid gap-3" initial="hidden" animate="show" variants={staggerGroup()}>
+        {steps.map((s) => {
           const checked = optimisticDone.includes(s.id);
           return (
-            <li
+            <motion.li
               key={s.id}
-              className={`vn-step-card rounded-2xl border p-4 sm:p-5 ${
+              variants={fadeUp}
+              className={`rounded-2xl border p-4 sm:p-5 ${
                 s.urgent ? "border-alerta/40 bg-alerta-bg" : checked ? "border-line bg-white/60" : "border-line bg-white"
               }`}
-              style={{ "--i": i } as React.CSSProperties}
             >
               <label className="flex cursor-pointer items-start gap-4">
                 <input
@@ -83,10 +90,10 @@ export function PlanChecklist({ steps, done }: { steps: PlanStep[]; done: string
                   )}
                 </div>
               ) : null}
-            </li>
+            </motion.li>
           );
         })}
-      </ol>
+      </motion.ol>
     </div>
   );
 }

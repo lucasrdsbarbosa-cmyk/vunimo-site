@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RevealGroup, RevealItem } from "./motion/Reveal";
 import { NUCLEI } from "@/lib/content";
 import { Icon, type IconName } from "./Icons";
 
@@ -8,11 +9,11 @@ const ICONS: Record<string, IconName> = { pausa: "pause", desabafar: "chat", ori
 export function NucleusCards({ highlight = "pausa", exclude }: { highlight?: string; exclude?: string }) {
   const items = NUCLEI.filter((n) => n.key !== exclude);
   return (
-    <ul className="grid gap-3 sm:grid-cols-2">
+    <RevealGroup className="grid gap-3 sm:grid-cols-2">
       {items.map((n) => {
         const featured = n.key === highlight;
         return (
-          <li key={n.key}>
+          <RevealItem key={n.key}>
             <Link
               href={n.href}
               className={`group flex h-full min-h-24 items-center gap-4 rounded-[var(--radius-card)] p-5 vn-card ${
@@ -34,9 +35,9 @@ export function NucleusCards({ highlight = "pausa", exclude }: { highlight?: str
               </span>
               <Icon name="arrow" className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
             </Link>
-          </li>
+          </RevealItem>
         );
       })}
-    </ul>
+    </RevealGroup>
   );
 }

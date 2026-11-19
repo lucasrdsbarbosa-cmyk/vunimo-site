@@ -352,11 +352,8 @@ p {
 }
 .vn-check:checked { background: var(--color-iris); transform: scale(1.06); }
 .vn-check:checked::after { transform: rotate(45deg) scale(1); }
-.vn-progress { transition: width 0.5s var(--ease-out, ease); }
 
-/* Cartões em cascata ao abrir uma ferramenta */
 @keyframes vn-step-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.vn-step-card { animation: vn-step-in 0.5s var(--ease-out, ease) both; animation-delay: calc(var(--i, 0) * 60ms); }
 
 /* Brilho enquanto a IA trabalha */
 @keyframes vn-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -410,24 +407,6 @@ p {
 .vn-burger[data-open] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
 .vn-burger[data-open] span:nth-child(2) { opacity: 0; transform: scaleX(0.2); }
 .vn-burger[data-open] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-
-/* Gaveta do menu no celular: altura animada + itens em cascata */
-.vn-drawer {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.4s var(--ease-out);
-}
-.vn-drawer[data-open] { grid-template-rows: 1fr; }
-.vn-drawer-item {
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 0.3s, transform 0.4s var(--ease-out);
-}
-.vn-drawer[data-open] .vn-drawer-item {
-  opacity: 1;
-  transform: none;
-  transition-delay: calc(var(--i, 0) * 40ms + 60ms);
-}
 
 /* Painel de Ajuda e segurança: folha lateral no computador, de baixo no celular */
 .vn-sheet {
@@ -505,26 +484,14 @@ button:not(:disabled):active, [role="button"]:active { transition-duration: 0.08
 @keyframes vn-dot { 0%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 .btn[data-pending] { cursor: progress; opacity: 0.85; }
 
-/* Mensagens do formulário: sucesso entra com um "check", erro com um leve balanço */
-.vn-msg { animation: vn-msg-in 0.4s var(--ease-out) both; }
-.vn-msg[data-tone="error"] { animation: vn-msg-in 0.4s var(--ease-out) both, vn-nudge 0.42s 0.1s ease-in-out; }
-.vn-msg-check { animation: vn-check-pop 0.5s 0.1s var(--ease-spring) both; }
-@keyframes vn-msg-in { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+/* Campo com erro: leve balanço ao aparecer (as mensagens do formulário animam via Motion) */
 @keyframes vn-nudge { 0%, 100% { translate: 0; } 25% { translate: -5px; } 50% { translate: 4px; } 75% { translate: -2px; } }
-@keyframes vn-check-pop { from { transform: scale(0) rotate(-30deg); } to { transform: none; } }
 .field-input[aria-invalid="true"] { animation: vn-nudge 0.38s ease-in-out; }
 
 /* ---------- Abas e navegação ---------- */
 
-/* Indicador que desliza até o item ativo (posição medida em JS: --x, --y, --w, --h) */
-.vn-ind {
-  position: absolute; left: 0; top: 0; pointer-events: none;
-  width: var(--w, 0); height: var(--h, 0);
-  transform: translate(var(--x, 0), var(--y, 0));
-  opacity: 0;
-}
-.vn-ind[data-visible] { opacity: 1; }
-.vn-ind[data-ready] { transition: transform 0.45s var(--ease-spring), width 0.45s var(--ease-out), height 0.45s var(--ease-out), opacity 0.2s; }
+/* Indicador da aba ativa: um único elemento que o Motion leva de uma aba à outra (layoutId) */
+.vn-ind { position: absolute; inset: 0; pointer-events: none; }
 /* lateral (computador): fundo branco com a borda Íris */
 .vn-ind-side { border-radius: 0.75rem; background: #fff; box-shadow: inset 3px 0 0 var(--color-iris), 0 6px 16px -12px rgb(85 72 217 / 0.45); }
 /* barra inferior (celular): pílula Névoa atrás do ícone + traço Íris */
@@ -541,9 +508,6 @@ button:not(:disabled):active, [role="button"]:active { transition-duration: 0.08
   content: ""; position: absolute; left: 0.75rem; right: 0.75rem; bottom: 4px; height: 3px; border-radius: 99px;
   background: var(--color-lima);
 }
-/* ícone da aba recém-ativada dá um pulinho */
-.vn-tab-icon[data-active] { animation: vn-tab-pop 0.45s var(--ease-spring); }
-@keyframes vn-tab-pop { 0% { transform: scale(0.8) translateY(2px); } 60% { transform: scale(1.12) translateY(-2px); } 100% { transform: none; } }
 
 /* Troca de abas: o conteúdo desliza para o lado da aba escolhida */
 ::view-transition-old(.vn-slide-forward) { --vn-off: -48px; animation: 140ms ease-in both vn-fade reverse, 360ms var(--ease-out) both vn-slide reverse; }
@@ -559,18 +523,17 @@ button:not(:disabled):active, [role="button"]:active { transition-duration: 0.08
 /* ---------- Barra de navegação na rolagem ---------- */
 /* Só transform/sombra/fundo mudam: a altura fica igual, então a página não "pula". */
 .vn-autohide {
-  transition: transform 0.42s var(--ease-out), box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 .vn-autohide[data-scrolled] {
   background-color: rgb(247 245 239 / 0.94);
   box-shadow: 0 10px 28px -20px rgb(39 36 59 / 0.45);
 }
-.vn-autohide[data-hidden] { transform: translateY(calc(-100% - 2px)); box-shadow: none; }
+.vn-autohide[data-hidden] { box-shadow: none; }
 
 /* ---------- Caixinhas por cima da tela ---------- */
 .vn-sheet::backdrop { backdrop-filter: blur(0); transition: background 0.35s, backdrop-filter 0.35s, overlay 0.35s allow-discrete, display 0.35s allow-discrete; }
 .vn-sheet[open]::backdrop { backdrop-filter: blur(3px); }
-.vn-sheet[open] .vn-sheet-item { animation: vn-step-in 0.45s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 55ms + 140ms); }
 
 /* Diálogo de confirmação com a cara da Vunimo (substitui o "confirm" do navegador) */
 .vn-confirm {
@@ -648,11 +611,7 @@ input[type="time"].field-input::-webkit-calendar-picker-indicator:hover { backgr
   border: 1px solid var(--color-line);
   box-shadow: 0 24px 60px -28px rgb(39 36 59 / 0.5), 0 2px 0 rgb(85 72 217 / 0.06);
   transform-origin: 1.5rem 0;
-  animation: vn-cal-in 0.26s var(--ease-out) both;
 }
-.vn-cal[data-state="closing"] { animation: vn-cal-out 0.16s ease-in both; }
-@keyframes vn-cal-in { from { opacity: 0; transform: translateY(-6px) scale(0.95); } to { opacity: 1; transform: none; } }
-@keyframes vn-cal-out { to { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 .vn-cal-backdrop { display: none; }
 
 .vn-cal-head { display: flex; align-items: center; gap: 0.25rem; }
@@ -677,10 +636,6 @@ input[type="time"].field-input::-webkit-calendar-picker-indicator:hover { backgr
 .vn-cal-grid { width: 100%; border-collapse: separate; border-spacing: 0 0.2rem; table-layout: fixed; }
 .vn-cal-grid th { font-size: 0.75rem; font-weight: 600; color: var(--color-muted); text-transform: uppercase; padding: 0.25rem 0; }
 .vn-cal-grid td { padding: 0; text-align: center; }
-.vn-cal-body[data-dir="next"] { animation: vn-month-next 0.3s var(--ease-out) both; }
-.vn-cal-body[data-dir="prev"] { animation: vn-month-prev 0.3s var(--ease-out) both; }
-@keyframes vn-month-next { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
-@keyframes vn-month-prev { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
 
 .vn-day {
   position: relative; width: 2.6rem; height: 2.6rem; margin: 0 auto; display: grid; place-items: center;
@@ -713,18 +668,13 @@ input[type="time"].field-input::-webkit-calendar-picker-indicator:hover { backgr
 /* Celular: o calendário vira uma folha que sobe da parte de baixo */
 @media (max-width: 639px) {
   .vn-cal-backdrop { display: block; position: fixed; inset: 0; z-index: 49; background: rgb(39 36 59 / 0.4); animation: vn-fade 0.25s ease both; }
-  .vn-cal-backdrop[data-state="closing"] { animation: vn-fade 0.18s ease reverse both; }
   .vn-cal {
     position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: none;
     border-radius: 1.5rem 1.5rem 0 0; padding: 0.75rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
-    animation: vn-sheet-up 0.38s var(--ease-out) both;
   }
   .vn-cal::before { content: ""; display: block; width: 2.5rem; height: 4px; border-radius: 4px; background: var(--color-line); margin: 0 auto 0.6rem; }
-  .vn-cal[data-state="closing"] { animation: vn-sheet-down 0.22s ease-in both; }
   .vn-day { width: 2.9rem; height: 2.9rem; }
 }
-@keyframes vn-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
-@keyframes vn-sheet-down { to { transform: translateY(100%); } }
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
